@@ -839,7 +839,7 @@ export const RESOURCES = {
   groups: [
     {
       title: 'Factsheets',
-      body: 'Filter by strategy + month/year; latest four surfaced at the top',
+      body: 'The latest monthly factsheets across all strategies',
       categories: ['Monthly factsheets'],
       items: ['ACE Multicap — July 2026', 'ACE Ten Trillion — July 2026', 'ACE Multi-Asset — July 2026'],
     },

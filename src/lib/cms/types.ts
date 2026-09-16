@@ -75,6 +75,15 @@ export interface NewDocumentInput {
   file?: File;
 }
 
+/** Edit an existing document (Console). Category is fixed; file is optional. */
+export interface UpdateDocumentInput {
+  id: string;
+  title: string;
+  strategy?: string;
+  /** A replacement file. When omitted the existing file (if any) is kept. */
+  file?: File;
+}
+
 /** The six KYC documents required to onboard an individual client. */
 export const ONBOARDING_DOCS = [
   { key: 'pan', label: 'PAN Card' },
@@ -150,6 +159,7 @@ export interface CmsBackend {
 
   listDocuments(): CmsDocument[];
   addDocument(input: NewDocumentInput): Promise<CmsDocument>;
+  updateDocument(input: UpdateDocumentInput): Promise<CmsDocument>;
   deleteDocument(id: string): Promise<void>;
 
   listArticles(): CmsArticle[];

@@ -6,6 +6,23 @@ import { useCmsDocuments } from '../lib/cms/store';
 
 const GROUP_ICONS = [FileSpreadsheet, ShieldCheck, FileText];
 
+const MONTHS: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+// Factsheet titles carry their period as "… — August 2026". Parse it into a
+// sortable value (year*12+month) so we can surface only the latest month's set.
+// Returns -1 when no month/year can be read.
+function factsheetPeriod(title: string): number {
+  const m = title.match(/([A-Za-z]{3,})\s+(\d{4})/);
+  if (!m) return -1;
+  const month = MONTHS[m[1].slice(0, 3).toLowerCase()];
+  const year = parseInt(m[2], 10);
+  if (month === undefined || !year) return -1;
+  return year * 12 + month;
+}
+
 function fileBadge(type?: string): string {
   if (!type) return 'FILE';
   if (type.includes('pdf')) return 'PDF';
@@ -21,13 +38,23 @@ export default function ResourcesPage() {
 
   // Each card pulls live CMS documents from its mapped categories (managed in
   // the Console); if none are uploaded yet, the static fallback list is shown.
-  const groups = RESOURCES.groups.map((group, idx) => ({
-    title: group.title,
-    body: group.body,
-    Icon: GROUP_ICONS[idx % GROUP_ICONS.length],
-    docs: documents.filter((d) => (group.categories as readonly string[]).includes(d.category)),
-    fallback: group.items,
-  }));
+  const groups = RESOURCES.groups.map((group, idx) => {
+    const cats = group.categories as readonly string[];
+    let docs = documents.filter((d) => cats.includes(d.category));
+    // Factsheets: show only the latest month's uploads (e.g. once Aug 2026 is
+    // up, July drops off). Falls back to all when no periods can be parsed.
+    if (cats.includes('Monthly factsheets')) {
+      const latest = docs.reduce((max, d) => Math.max(max, factsheetPeriod(d.title)), -1);
+      if (latest >= 0) docs = docs.filter((d) => factsheetPeriod(d.title) === latest);
+    }
+    return {
+      title: group.title,
+      body: group.body,
+      Icon: GROUP_ICONS[idx % GROUP_ICONS.length],
+      docs,
+      fallback: group.items,
+    };
+  });
 
   const placeholder = (item: string) =>
     showToast(`"${item}" will be available for download once documents are uploaded to the portal.`);

@@ -22,6 +22,7 @@ import type {
   DocCategory,
   NewArticleInput,
   NewDocumentInput,
+  UpdateDocumentInput,
   OnboardingRecord,
   TeamUser,
 } from './types';
@@ -221,6 +222,26 @@ class MockBackend implements CmsBackend {
     }
     this.emit();
     return doc;
+  }
+
+  async updateDocument(input: UpdateDocumentInput): Promise<CmsDocument> {
+    const current = this.documents.find((d) => d.id === input.id);
+    if (!current) throw new Error('Document not found.');
+    const fileUrl = input.file ? await fileToDataUrl(input.file) : current.fileUrl;
+    const updated: CmsDocument = {
+      ...current,
+      title: input.title,
+      strategy: input.strategy,
+      fileName: input.file?.name ?? current.fileName,
+      fileType: input.file ? input.file.type || undefined : current.fileType,
+      fileUrl,
+      // Once a real file is attached, it's no longer a bare placeholder seed.
+      seeded: input.file ? false : current.seeded,
+    };
+    this.documents = this.documents.map((d) => (d.id === input.id ? updated : d));
+    write(KEYS.docs, this.documents);
+    this.emit();
+    return updated;
   }
 
   async deleteDocument(id: string) {

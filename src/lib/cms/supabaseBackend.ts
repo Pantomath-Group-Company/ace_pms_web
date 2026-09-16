@@ -19,6 +19,7 @@ import type {
   CmsSession,
   NewArticleInput,
   NewDocumentInput,
+  UpdateDocumentInput,
   OnboardingRecord,
   TeamUser,
 } from './types';
@@ -206,6 +207,48 @@ class SupabaseBackend implements CmsBackend {
       .select()
       .single();
     if (error) throw new Error(error.message);
+
+    await this.refreshDocuments();
+    return mapDocument(data);
+  }
+
+  async updateDocument(input: UpdateDocumentInput): Promise<CmsDocument> {
+    const current = this.documents.find((d) => d.id === input.id);
+    const patch: any = {
+      title: input.title,
+      strategy: input.strategy ?? null,
+    };
+
+    let oldPath: string | undefined;
+    if (input.file) {
+      const fileType = input.file.type || 'application/octet-stream';
+      const filePath = `docs/${uid()}-${safeName(input.file.name)}`;
+      const { error: upErr } = await supabase.storage
+        .from(BUCKETS.documents)
+        .upload(filePath, input.file, { upsert: false, contentType: fileType });
+      if (upErr) throw new Error(`Upload failed: ${upErr.message}`);
+      patch.file_path = filePath;
+      patch.file_name = input.file.name;
+      patch.file_type = fileType;
+      // Remember the previous file so we can clean it up after the row updates.
+      if (current?.fileUrl) {
+        const marker = `/${BUCKETS.documents}/`;
+        const idx = current.fileUrl.indexOf(marker);
+        if (idx >= 0) oldPath = decodeURIComponent(current.fileUrl.slice(idx + marker.length));
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('documents')
+      .update(patch)
+      .eq('id', input.id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+
+    if (oldPath) {
+      await supabase.storage.from(BUCKETS.documents).remove([oldPath]);
+    }
 
     await this.refreshDocuments();
     return mapDocument(data);

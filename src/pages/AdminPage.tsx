@@ -12,8 +12,10 @@ import {
   Search,
   LogOut,
   Plus,
+  Pencil,
   Trash2,
   Download,
+  Check,
   X,
   Loader2,
   ChevronDown,
@@ -24,6 +26,7 @@ import { cms } from '../lib/cms/backend';
 import {
   DOC_CATEGORIES,
   ARTICLE_KINDS,
+  type CmsDocument,
   type DocCategory,
   type ArticleKind,
   type OnboardingRecord,
@@ -233,6 +236,7 @@ const IconBtn: FC<{ onClick: () => void; title: string; danger?: boolean; childr
 
 const DocList: FC<{ category: DocCategory; search: string }> = ({ category, search }) => {
   const docs = useCmsDocuments();
+  const [editing, setEditing] = useState<CmsDocument | null>(null);
   const q = search.trim().toLowerCase();
   const rows = docs.filter(
     (d) => d.category === category && (!q || d.title.toLowerCase().includes(q)),
@@ -258,6 +262,9 @@ const DocList: FC<{ category: DocCategory; search: string }> = ({ category, sear
                   <Download className="w-4 h-4" />
                 </a>
               )}
+              <IconBtn onClick={() => setEditing(d)} title="Edit">
+                <Pencil className="w-4 h-4" />
+              </IconBtn>
               <IconBtn onClick={() => cms.deleteDocument(d.id)} title="Delete" danger>
                 <Trash2 className="w-4 h-4" />
               </IconBtn>
@@ -265,7 +272,89 @@ const DocList: FC<{ category: DocCategory; search: string }> = ({ category, sear
           }
         />
       ))}
+      {editing && <EditDocument doc={editing} onClose={() => setEditing(null)} />}
     </>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* Edit document slide-over                                           */
+/* ------------------------------------------------------------------ */
+
+const EditDocument: FC<{ doc: CmsDocument; onClose: () => void }> = ({ doc, onClose }) => (
+  <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="absolute inset-0 bg-ink-900/40 animate-fadeIn" onClick={onClose} />
+    <div className="relative w-full max-w-md bg-white h-full shadow-2xl overflow-y-auto animate-fadeIn">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white">
+        <h3 className="font-extrabold text-slate-900">Edit · {doc.category}</h3>
+        <button onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:bg-slate-50">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      <div className="p-6">
+        <DocumentEditForm doc={doc} onDone={onClose} />
+      </div>
+    </div>
+  </div>
+);
+
+const DocumentEditForm: FC<{ doc: CmsDocument; onDone: () => void }> = ({ doc, onDone }) => {
+  const showToast = useToast();
+  const [title, setTitle] = useState(doc.title);
+  const [strategy, setStrategy] = useState(doc.strategy ?? '');
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setBusy(true);
+    try {
+      await cms.updateDocument({
+        id: doc.id,
+        title: title.trim(),
+        strategy: strategy.trim() || undefined,
+        file: file ?? undefined,
+      });
+      showToast(`"${title.trim()}" updated.`);
+      onDone();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Update failed.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <p className="text-[11px] text-slate-400">
+        Category: <span className="font-semibold text-slate-600">{doc.category}</span>
+      </p>
+      <Field label="Title">
+        <input value={title} onChange={(e) => setTitle(e.target.value)} required className={inputCls} />
+      </Field>
+      <Field label="Strategy (optional)">
+        <input value={strategy} onChange={(e) => setStrategy(e.target.value)} placeholder="e.g. ACE Multicap" className={inputCls} />
+      </Field>
+      <Field label="Replace file (optional)">
+        <input
+          type="file"
+          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+          className="w-full text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-ink-50 file:text-ink-700 file:font-semibold file:text-xs hover:file:bg-ink-100"
+        />
+        <span className="text-[11px] text-slate-400 mt-1.5 block">
+          {doc.fileName ? `Current: ${doc.fileName}` : 'No file attached yet.'} Leave empty to keep it.
+        </span>
+      </Field>
+      <button
+        type="submit"
+        disabled={busy}
+        className="w-full bg-accent-500 hover:bg-accent-600 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-lg inline-flex items-center justify-center gap-2"
+      >
+        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+        {busy ? 'Saving…' : 'Save changes'}
+      </button>
+    </form>
   );
 };
 
