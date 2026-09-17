@@ -132,8 +132,7 @@ select * from (values
   ('Investor Charter',                'Compliance & disclosures', true),
   ('SEBI Disclosure Document',        'Compliance & disclosures', true),
   ('Fee illustration',                'Compliance & disclosures', true),
-  ('Grievance redressal (SCORES)',    'Compliance & disclosures', true),
-  ('PMS regulations',                 'Compliance & disclosures', true),
+  ('Investor Grievance',              'Compliance & disclosures', true),
   ('Account opening form',            'Forms', true),
   ('PIS account guidance for NRIs',   'Forms', true)
 ) as v(title, category, seeded)

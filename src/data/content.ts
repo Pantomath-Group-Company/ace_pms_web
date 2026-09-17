@@ -25,7 +25,7 @@ export const REGULATORY = {
     scores: 'https://scores.sebi.gov.in/',
     smartOdr: 'https://smartodr.in/',
     sebiOdrCircular:
-      'https://www.sebi.gov.in/legal/master-circulars/dec-2023/online-resolution-of-disputes-in-the-indian-securities-market_80831.html',
+      'https://www.sebi.gov.in/legal/master-circulars/dec-2023/master-circular-for-online-resolution-of-disputes-in-the-indian-securities-market_80236.html',
   },
 };
 
@@ -435,7 +435,7 @@ export const ABOUT = {
           'ACE PMS is the SEBI-registered portfolio management platform of ACMIIL (Reg. No. INP000005801).',
       },
       {
-        name: 'Wealth Company Asset Management Pvt Ltd',
+        name: 'Wealth Company Asset Management Pvt. Ltd.',
         monogram: 'WC',
         logo: '/logos/wc-alternates-trim.png',
         short: 'Bharat Value Fund across its series manages ~₹7,000 crore in client assets.',
@@ -443,7 +443,7 @@ export const ABOUT = {
           'Bharat Value Fund across various series manages ~₹7,000 crores in client assets.',
       },
       {
-        name: 'Wealth Company Asset Management Holdings Pvt Ltd',
+        name: 'Wealth Company Asset Management Holdings Pvt. Ltd.',
         monogram: 'WCH',
         logo: '/logos/wc-mutualfund-trim.png',
         short:
@@ -452,7 +452,7 @@ export const ABOUT = {
           "India's first female-founded mutual fund house; launched four active funds simultaneously in 2025; ₹2,000 cr in debut NFO collections.",
       },
       {
-        name: 'Pantomath Capital Advisors Pvt Ltd',
+        name: 'Pantomath Capital Advisors Pvt. Ltd.',
         monogram: 'PCA',
         logo: '/logos/pantomath-tm.jpg',
         short: 'Full-service investment bank — IPOs, QIPs, M&A and PE advisory; 150+ ECM deals.',

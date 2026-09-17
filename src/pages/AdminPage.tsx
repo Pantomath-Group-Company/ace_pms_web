@@ -533,6 +533,16 @@ const ArticleList: FC<{ kinds: ArticleKind[]; search: string }> = ({ kinds, sear
 /* Onboarding (read-only submissions)                                 */
 /* ------------------------------------------------------------------ */
 
+// Submissions carry their flow + entity type as a leading "[Client Account
+// Opening · Individual]" tag on the notes field (set in OnboardingPage). Split
+// it out so the console can show the client type prominently.
+function parseSubmission(notes?: string): { type?: string; text?: string } {
+  if (!notes) return {};
+  const m = notes.match(/^\s*\[([^\]]+)\]\s*(?:—\s*)?([\s\S]*)$/);
+  if (!m) return { text: notes.trim() || undefined };
+  return { type: m[1].trim(), text: m[2].trim() || undefined };
+}
+
 const OnboardingList: FC<{ search: string }> = ({ search }) => {
   const showToast = useToast();
   const [rows, setRows] = useState<OnboardingRecord[] | null>(null);
@@ -550,7 +560,11 @@ const OnboardingList: FC<{ search: string }> = ({ search }) => {
   const filtered = useMemo(
     () =>
       (rows ?? []).filter(
-        (r) => !q || r.fullName.toLowerCase().includes(q) || r.pan.toLowerCase().includes(q),
+        (r) =>
+          !q ||
+          r.fullName.toLowerCase().includes(q) ||
+          r.pan.toLowerCase().includes(q) ||
+          (r.notes ?? '').toLowerCase().includes(q),
       ),
     [rows, q],
   );
@@ -570,11 +584,14 @@ const OnboardingList: FC<{ search: string }> = ({ search }) => {
 
   return (
     <>
-      {filtered.map((r) => (
+      {filtered.map((r) => {
+        const parsed = parseSubmission(r.notes);
+        const docCount = r.documents.length;
+        return (
         <Row
           key={r.id}
           title={r.fullName}
-          tag={`PAN ${r.pan}`}
+          tag={parsed.type ?? 'Submission'}
           date={fmtDate(r.createdAt)}
           actions={
             <IconBtn onClick={() => setOpenId(openId === r.id ? null : r.id)} title="Details">
@@ -583,11 +600,11 @@ const OnboardingList: FC<{ search: string }> = ({ search }) => {
           }
         >
           <p className="text-xs text-slate-500 font-light mt-1.5">
-            {r.email} · {r.mobile}
+            PAN {r.pan} · {r.email} · {r.mobile} · {docCount} document{docCount === 1 ? '' : 's'}
           </p>
           {openId === r.id && (
             <div className="mt-3 space-y-1.5">
-              {r.notes && <p className="text-xs text-slate-500 italic">“{r.notes}”</p>}
+              {parsed.text && <p className="text-xs text-slate-500 italic">“{parsed.text}”</p>}
               <div className="flex flex-wrap gap-2">
                 {r.documents.map((d) => (
                   <button
@@ -602,7 +619,8 @@ const OnboardingList: FC<{ search: string }> = ({ search }) => {
             </div>
           )}
         </Row>
-      ))}
+        );
+      })}
     </>
   );
 };

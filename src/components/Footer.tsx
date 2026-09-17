@@ -70,7 +70,8 @@ export const Footer = () => {
             <ul className="space-y-2 text-xs">
               <li><Link to="/about" className="hover:text-white transition">About Us</Link></li>
               <li><Link to="/why-ace-pms" className="hover:text-white transition">Why ACE PMS</Link></li>
-              <li><Link to="/performance" className="hover:text-white transition">Performance & Disclosures</Link></li>
+              <li><Link to="/performance" className="hover:text-white transition">Performance</Link></li>
+              <li><Link to="/resources" className="hover:text-white transition">Disclosures</Link></li>
               <li><Link to="/insights" className="hover:text-white transition">Insights & Media</Link></li>
               <li><Link to="/resources" className="hover:text-white transition">Downloads</Link></li>
               <li><Link to="/contact" className="hover:text-white transition">Contact us</Link></li>
@@ -106,11 +107,20 @@ export const Footer = () => {
           </div>
 
           <p>
-            {REGULATORY.legalName} — {REGULATORY.descriptor}. CIN: {REGULATORY.cin} · SEBI PMS Reg. No.{' '}
-            {REGULATORY.sebiPms} · Stock Broking {REGULATORY.stockBroking} ({REGULATORY.stockBrokingMembers}) ·
-            DP: {REGULATORY.dp} · Research Analyst {REGULATORY.researchAnalyst} · APMI Member ID{' '}
-            {REGULATORY.apmi} · AMFI-registered Mutual Fund Distributor · PFRDA Point of Presence (POP).
+            {REGULATORY.legalName} — {REGULATORY.descriptor}. CIN: {REGULATORY.cin}
           </p>
+
+          <div className="space-y-1">
+            <p className="font-semibold text-ink-100/80">Registrations</p>
+            <p>
+              SEBI Reg. No. - PMS {REGULATORY.sebiPms} · Stock Broking {REGULATORY.stockBroking} (
+              {REGULATORY.stockBrokingMembers}) · DP: {REGULATORY.dp} · Research Analyst{' '}
+              {REGULATORY.researchAnalyst}
+            </p>
+            <p>APMI Member ID</p>
+            <p>AMFI Registration Number: ARN-3086</p>
+            <p>PFRDA 21092018</p>
+          </div>
 
           <p>*{REGULATORY.footnote}</p>
 

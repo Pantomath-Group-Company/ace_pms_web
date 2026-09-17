@@ -26,7 +26,7 @@ export const TEAM_GROUPS: TeamGroup[] = [
     members: [
       {
         name: 'Ms. Madhu Lunawat',
-        role: 'Pantomath Group',
+        role: 'Principal, Pantomath Group',
         photo: '/team/madhu-lunawat.jpg',
         bio: [
           'The first woman founder of a mutual fund house in India — a landmark in the Indian asset-management industry. Ms. Lunawat brings over two decades of experience across asset management, private equity and capital markets, with earlier stints at Infosys, ASREC and Edelweiss.',
