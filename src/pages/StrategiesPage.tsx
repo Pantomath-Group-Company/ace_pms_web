@@ -18,14 +18,14 @@ export default function StrategiesPage() {
             </span>
           </>
         }
-        lead="Purpose-built strategies, united by one GARP philosophy."
+        lead="Purpose-built strategies, united by one investment philosophy."
       />
 
       <section id="strategies" className="py-20 bg-white font-sans">
         <StrategyShowcase
           eyebrow="OUR STRATEGIES, ONE PHILOSOPHY"
           title="3 Purpose-built portfolio strategies"
-          lead="Each strategy is run on the same GARP discipline — select a mandate to review its construction, key facts and track record."
+          lead="Each strategy is run on the same investment discipline — select a mandate to review its construction, key facts and track record."
           initialTabId={tabFromUrl}
           onTabChange={(id) => setSearchParams({ tab: id }, { replace: true })}
         />

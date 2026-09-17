@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, Scale, ArrowUpRight } from 'lucide-react';
 import { CONTACT, REGULATORY, STRATEGIES } from '../data/content';
-import { TOP_MONTHLY_STRATEGY_ID } from '../lib/topPerformer';
+import { useTopMonthlyStrategyId } from '../lib/topPerformer';
 
 export const Footer = () => {
+  const topStrategyId = useTopMonthlyStrategyId();
   return (
     <footer className="bg-ink-900 text-ink-100/70 border-t border-ink-800 pt-16 pb-12 font-sans overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -44,7 +45,7 @@ export const Footer = () => {
                     <span>{s.name}</span>
                     <span
                       className={`text-[10px] px-1.5 py-0.5 rounded ${
-                        s.id === TOP_MONTHLY_STRATEGY_ID
+                        s.id === topStrategyId
                           ? 'text-accent-500 bg-accent-500/10 group-hover:bg-accent-500/20'
                           : 'text-ink-200/50'
                       }`}
@@ -56,7 +57,7 @@ export const Footer = () => {
               ))}
               <li>
                 <Link to="/philosophy" className="hover:text-white transition flex items-center gap-1 group">
-                  <span>GARP Philosophy & Process</span>
+                  <span>Philosophy & Process</span>
                   <ArrowUpRight className="w-3 h-3 text-ink-400 group-hover:text-accent-500 transition" />
                 </Link>
               </li>
@@ -72,7 +73,7 @@ export const Footer = () => {
               <li><Link to="/performance" className="hover:text-white transition">Performance & Disclosures</Link></li>
               <li><Link to="/insights" className="hover:text-white transition">Insights & Media</Link></li>
               <li><Link to="/resources" className="hover:text-white transition">Downloads</Link></li>
-              <li><Link to="/contact" className="hover:text-white transition">Contact & Investor Grievance</Link></li>
+              <li><Link to="/contact" className="hover:text-white transition">Contact us</Link></li>
             </ul>
           </div>
 
@@ -101,12 +102,14 @@ export const Footer = () => {
         <div className="border-t border-ink-800 pt-8 mt-8 text-[11px] leading-relaxed text-ink-200/60 space-y-4">
           <div className="flex items-center gap-1.5 text-ink-100/80 font-semibold text-xs">
             <Scale className="w-4.5 h-4.5 text-ink-200/60" />
-            <span>DISCLAIMERS & STATUTORY DISCLOSURES</span>
+            <span>DISCLAIMERS & DISCLOSURES</span>
           </div>
 
           <p>
-            {REGULATORY.legalName} — {REGULATORY.descriptor}. SEBI PMS Reg. No. {REGULATORY.sebiPms} ·
-            BSE/NSE {REGULATORY.bseNse} · Research Analyst {REGULATORY.researchAnalyst} · DP {REGULATORY.dp}.
+            {REGULATORY.legalName} — {REGULATORY.descriptor}. CIN: {REGULATORY.cin} · SEBI PMS Reg. No.{' '}
+            {REGULATORY.sebiPms} · Stock Broking {REGULATORY.stockBroking} ({REGULATORY.stockBrokingMembers}) ·
+            DP: {REGULATORY.dp} · Research Analyst {REGULATORY.researchAnalyst} · APMI Member ID{' '}
+            {REGULATORY.apmi} · AMFI-registered Mutual Fund Distributor · PFRDA Point of Presence (POP).
           </p>
 
           <p>*{REGULATORY.footnote}</p>
@@ -116,9 +119,9 @@ export const Footer = () => {
               © {new Date().getFullYear()} {REGULATORY.legalName} All Rights Reserved. (ISO 9001:2015
               certified company)
             </span>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
               <a
-                href="https://www.investmentz.com/investor-charters"
+                href={REGULATORY.links.investorCharter}
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-ink-100 transition"
@@ -126,13 +129,32 @@ export const Footer = () => {
                 Investor Charter
               </a>
               <a
-                href="https://scores.sebi.gov.in/"
+                href={REGULATORY.links.scores}
                 target="_blank"
                 rel="noreferrer"
                 className="hover:text-ink-100 transition"
               >
                 SEBI Complaints (SCORES)
               </a>
+              <a
+                href={REGULATORY.links.smartOdr}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-ink-100 transition"
+              >
+                Smart ODR
+              </a>
+              <a
+                href={REGULATORY.links.sebiOdrCircular}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-ink-100 transition"
+              >
+                SEBI Master Circular
+              </a>
+              <Link to="/contact" className="hover:text-ink-100 transition">
+                Investor Grievance
+              </Link>
             </div>
           </div>
         </div>

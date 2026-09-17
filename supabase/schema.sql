@@ -45,12 +45,26 @@ create table if not exists public.client_onboarding (
   created_at timestamptz not null default now()
 );
 
+-- One month-end NAV series per strategy, driving the growth chart on the Home
+-- and Strategies pages. Uploaded from the Console (parsed from an Excel file).
+create table if not exists public.strategy_nav (
+  strategy_id text primary key,                    -- multicap | tentrillion | multiasset
+  since       date not null,                       -- inception (first month)
+  as_of       date not null,                       -- latest month
+  labels      jsonb not null default '[]'::jsonb,  -- ["Aug 2018", ...]
+  points      jsonb not null default '[]'::jsonb,  -- [[strategyRebased, benchmarkRebased], ...]
+  uploaded_by text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
 -- ---------------------------------------------------------------------------
 -- Row Level Security
 -- ---------------------------------------------------------------------------
 alter table public.documents         enable row level security;
 alter table public.articles          enable row level security;
 alter table public.client_onboarding enable row level security;
+alter table public.strategy_nav      enable row level security;
 
 -- Public site content: anyone may read
 drop policy if exists "documents public read" on public.documents;
@@ -65,6 +79,12 @@ create policy "documents team write" on public.documents for all to authenticate
 
 drop policy if exists "articles team write" on public.articles;
 create policy "articles team write" on public.articles for all to authenticated using (true) with check (true);
+
+drop policy if exists "strategy_nav public read" on public.strategy_nav;
+create policy "strategy_nav public read" on public.strategy_nav for select using (true);
+
+drop policy if exists "strategy_nav team write" on public.strategy_nav;
+create policy "strategy_nav team write" on public.strategy_nav for all to authenticated using (true) with check (true);
 
 -- Onboarding: the public may submit; only the team may read
 drop policy if exists "onboarding public insert" on public.client_onboarding;

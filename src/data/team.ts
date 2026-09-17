@@ -21,15 +21,15 @@ export interface TeamGroup {
 
 export const TEAM_GROUPS: TeamGroup[] = [
   {
-    title: 'Promoters',
-    subtitle: 'The visionaries behind the group’s legacy and leadership.',
+    title: 'Principal',
+    subtitle: 'The visionary behind the group’s legacy and leadership.',
     members: [
       {
-        name: 'Mrs. Madhu Lunawat',
-        role: 'Co-Promoter, Pantomath Group',
+        name: 'Ms. Madhu Lunawat',
+        role: 'Pantomath Group',
         photo: '/team/madhu-lunawat.jpg',
         bio: [
-          'The first woman founder of a mutual fund house in India — a landmark in the Indian asset-management industry. Mrs. Lunawat brings over two decades of experience across asset management, private equity and capital markets, with earlier stints at Infosys, ASREC and Edelweiss.',
+          'The first woman founder of a mutual fund house in India — a landmark in the Indian asset-management industry. Ms. Lunawat brings over two decades of experience across asset management, private equity and capital markets, with earlier stints at Infosys, ASREC and Edelweiss.',
           'As Co-Founder of the Pantomath Group — a full-service financial enterprise spanning investment banking, M&A, institutional equity and asset management — she has expanded the group’s footprint, integrating Asit C. Mehta Investment Interrmediates Ltd. as its retail-broking arm and fostering AI-led fintech ventures.',
           'Founder & CIO of the Bharat Value Fund and the driving force behind The Wealth Company, she has pioneered alternative investment strategies and led India’s only listed SME Fund — bringing sharp investment judgment and disciplined thinking to every aspect of the business.',
         ],

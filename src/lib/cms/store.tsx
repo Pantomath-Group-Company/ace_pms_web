@@ -13,7 +13,7 @@ import {
   type ReactNode,
 } from 'react';
 import { cms } from './backend';
-import type { CmsArticle, CmsDocument, CmsSession } from './types';
+import type { CmsArticle, CmsDocument, CmsSession, StrategyNavSeries } from './types';
 
 /* ---------------- Auth ---------------- */
 
@@ -73,4 +73,8 @@ export function useCmsDocuments(): CmsDocument[] {
 
 export function useCmsArticles(): CmsArticle[] {
   return useSyncExternalStore(subscribe, () => cms.listArticles());
+}
+
+export function useCmsStrategyNav(): StrategyNavSeries[] {
+  return useSyncExternalStore(subscribe, () => cms.listStrategyNav());
 }

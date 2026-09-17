@@ -3,14 +3,15 @@ import { Link } from 'react-router-dom';
 import { CheckCircle2, Download } from 'lucide-react';
 import { STRATEGIES, PERFORMANCE } from '../data/content';
 import strategyNav from '../data/strategyNav.json';
-import { TOP_MONTHLY_STRATEGY_ID } from '../lib/topPerformer';
+import { useTopMonthlyStrategyId } from '../lib/topPerformer';
+import { useCmsStrategyNav } from '../lib/cms/store';
+import { deriveNavStats } from '../lib/cms/navParser';
 import { Disclaimer } from './shared';
 import { useToast } from './toast';
 
-const NAV = strategyNav.strategies as Record<
-  string,
-  { since: string; asOf: string; labels: string[]; points: number[][] }
->;
+type NavSeries = { since: string; asOf: string; labels: string[]; points: number[][] };
+
+const STATIC_NAV = strategyNav.strategies as Record<string, NavSeries>;
 
 const PERIOD_LABELS = ['1 Year', '3 Years', '5 Years', 'Since Inception'];
 
@@ -87,6 +88,8 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
   compact = false,
 }) => {
   const showToast = useToast();
+  const uploadedNav = useCmsStrategyNav();
+  const topStrategyId = useTopMonthlyStrategyId();
   const [activeId, setActiveId] = useState<string>(
     initialTabId && STRATEGIES.some((s) => s.id === initialTabId)
       ? initialTabId
@@ -114,7 +117,22 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
   // Chart-friendly short name (drops "Opportunities" so it fits one line).
   const stratLabel = active.name.replace(' Opportunities', '');
   const inceptionDate = active.keyFacts.find((f) => f.k === 'Inception')?.v ?? 'Inception';
-  const nav = NAV[active.id];
+
+  // NAV source priority: Console-uploaded series → committed strategyNav.json.
+  // When a strategy has an uploaded series we also derive its printed figures
+  // (₹ endpoint value, since-inception return, "as on" date) from that series,
+  // so one Excel upload updates the whole card. Otherwise the hand-set figures
+  // in content.ts are shown and the static JSON only shapes the curve.
+  const uploaded = uploadedNav.find((s) => s.strategyId === active.id);
+  const nav = uploaded ?? STATIC_NAV[active.id];
+  const derived = uploaded ? deriveNavStats(uploaded) : null;
+  const g = {
+    strategy: derived?.strategy ?? active.growth.strategy,
+    benchmark: derived?.benchmark ?? active.growth.benchmark,
+    strategyCagr: derived?.strategyCagr ?? active.growth.strategyCagr,
+    benchmarkCagr: derived?.benchmarkCagr ?? active.growth.benchmarkCagr,
+  };
+  const asOn = derived?.asOn ?? active.asOn;
   const chartPoints =
     nav?.points && nav.points.length > 1
       ? nav.points
@@ -163,7 +181,7 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
               }`}
             >
               {s.name.replace('ACE ', '').replace(' Opportunities', '')}
-              {s.id === TOP_MONTHLY_STRATEGY_ID && (
+              {s.id === topStrategyId && (
                 <span
                   className="ml-1.5 text-[9px] text-accent-500 font-mono"
                   title="Top performer this month"
@@ -361,18 +379,18 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
                 className="absolute right-1 -translate-y-1/2 text-xs font-extrabold text-accent-600 bg-white/85 px-1 rounded"
                 style={{ top: topPx(chart.sEndPt[1]) }}
               >
-                {active.growth.strategy}
+                {g.strategy}
               </span>
               <span
                 className="absolute right-1 -translate-y-1/2 text-[11px] font-bold text-slate-400 bg-white/85 px-1 rounded"
                 style={{ top: topPx(chart.bEndPt[1]) }}
               >
-                {active.growth.benchmark}
+                {g.benchmark}
               </span>
 
               <div className="flex justify-between items-center text-[10px] text-slate-400 font-mono mt-2 uppercase">
                 <span>{inceptionDate}</span>
-                <span>As on {active.asOn}</span>
+                <span>As on {asOn}</span>
               </div>
             </div>
 
@@ -383,10 +401,10 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
                   {stratLabel}
                 </span>
                 <span className="text-xl sm:text-2xl font-extrabold text-slate-950 block mt-0.5">
-                  {active.growth.strategy}
+                  {g.strategy}
                 </span>
                 <span className="text-[10px] text-slate-500 font-medium font-mono">
-                  At {active.growth.strategyCagr}% since-inception TWRR*
+                  At {g.strategyCagr}% since-inception TWRR*
                 </span>
               </div>
 
@@ -395,10 +413,10 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
                   {benchmarkName}
                 </span>
                 <span className="text-xl sm:text-2xl font-extrabold text-slate-700 block mt-0.5">
-                  {active.growth.benchmark}
+                  {g.benchmark}
                 </span>
                 <span className="text-[10px] text-slate-400 font-mono">
-                  At {active.growth.benchmarkCagr}% since-inception TWRR
+                  At {g.benchmarkCagr}% since-inception TWRR
                 </span>
               </div>
             </div>
@@ -414,7 +432,7 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
                     <span className="text-[10px] text-slate-400 font-mono tracking-widest uppercase block font-bold">
                       RETURNS ACROSS HORIZONS (TWRR %)
                     </span>
-                    <span className="text-[10px] text-slate-400 italic">As on {active.asOn}</span>
+                    <span className="text-[10px] text-slate-400 italic">As on {asOn}</span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

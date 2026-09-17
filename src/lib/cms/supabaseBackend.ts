@@ -20,6 +20,8 @@ import type {
   NewArticleInput,
   NewDocumentInput,
   UpdateDocumentInput,
+  NewStrategyNavInput,
+  StrategyNavSeries,
   OnboardingRecord,
   TeamUser,
 } from './types';
@@ -80,12 +82,25 @@ function mapArticle(row: any): CmsArticle {
   };
 }
 
+function mapStrategyNav(row: any): StrategyNavSeries {
+  return {
+    strategyId: row.strategy_id,
+    since: row.since,
+    asOf: row.as_of,
+    labels: Array.isArray(row.labels) ? row.labels : [],
+    points: Array.isArray(row.points) ? row.points : [],
+    uploadedBy: row.uploaded_by ?? 'Team',
+    uploadedAt: row.updated_at ?? row.created_at,
+  };
+}
+
 class SupabaseBackend implements CmsBackend {
   readonly mode = 'supabase' as const;
 
   private session: CmsSession | null = null;
   private documents: CmsDocument[] = [];
   private articles: CmsArticle[] = [];
+  private strategyNav: StrategyNavSeries[] = [];
   private listeners = new Set<() => void>();
 
   constructor() {
@@ -99,6 +114,7 @@ class SupabaseBackend implements CmsBackend {
     });
     void this.refreshDocuments();
     void this.refreshArticles();
+    void this.refreshStrategyNav();
   }
 
   private emit() {
@@ -130,6 +146,17 @@ class SupabaseBackend implements CmsBackend {
       .order('created_at', { ascending: false });
     if (!error && data) {
       this.articles = data.map(mapArticle);
+      this.emit();
+    }
+  }
+
+  private async refreshStrategyNav() {
+    const { data, error } = await supabase
+      .from('strategy_nav')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (!error && data) {
+      this.strategyNav = data.map(mapStrategyNav);
       this.emit();
     }
   }
@@ -300,6 +327,41 @@ class SupabaseBackend implements CmsBackend {
     const { error } = await supabase.from('articles').delete().eq('id', id);
     if (error) throw new Error(error.message);
     await this.refreshArticles();
+  }
+
+  /* ---- strategy NAV ---- */
+
+  listStrategyNav() {
+    return this.strategyNav;
+  }
+
+  async saveStrategyNav(input: NewStrategyNavInput): Promise<StrategyNavSeries> {
+    // One row per strategy — upsert on the strategy_id unique key.
+    const { data, error } = await supabase
+      .from('strategy_nav')
+      .upsert(
+        {
+          strategy_id: input.strategyId,
+          since: input.since,
+          as_of: input.asOf,
+          labels: input.labels,
+          points: input.points,
+          uploaded_by: this.session?.user.name ?? 'Team',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'strategy_id' },
+      )
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    await this.refreshStrategyNav();
+    return mapStrategyNav(data);
+  }
+
+  async deleteStrategyNav(strategyId: string) {
+    const { error } = await supabase.from('strategy_nav').delete().eq('strategy_id', strategyId);
+    if (error) throw new Error(error.message);
+    await this.refreshStrategyNav();
   }
 
   /* ---- onboarding ---- */

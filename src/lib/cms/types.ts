@@ -84,6 +84,32 @@ export interface UpdateDocumentInput {
   file?: File;
 }
 
+/**
+ * A per-strategy month-end NAV series driving the "growth of ₹1 crore" chart.
+ * `points` is [strategyRebased, benchmarkRebased][], both rebased to 1 at
+ * inception. Uploaded via the Console (parsed from an Excel workbook); when a
+ * strategy has no uploaded series the chart falls back to the committed
+ * strategyNav.json baked in at build time.
+ */
+export interface StrategyNavSeries {
+  strategyId: string;
+  since: string; // ISO date (YYYY-MM-DD)
+  asOf: string; // ISO date (YYYY-MM-DD)
+  labels: string[];
+  points: number[][];
+  uploadedBy: string;
+  uploadedAt: string; // ISO timestamp
+}
+
+/** Parsed NAV series ready to persist (no audit fields yet). */
+export interface NewStrategyNavInput {
+  strategyId: string;
+  since: string;
+  asOf: string;
+  labels: string[];
+  points: number[][];
+}
+
 /** The six KYC documents required to onboard an individual client. */
 export const ONBOARDING_DOCS = [
   { key: 'pan', label: 'PAN Card' },
@@ -165,6 +191,11 @@ export interface CmsBackend {
   listArticles(): CmsArticle[];
   addArticle(input: NewArticleInput): Promise<CmsArticle>;
   deleteArticle(id: string): Promise<void>;
+
+  /** Per-strategy NAV series driving the growth chart (Console-uploaded). */
+  listStrategyNav(): StrategyNavSeries[];
+  saveStrategyNav(input: NewStrategyNavInput): Promise<StrategyNavSeries>;
+  deleteStrategyNav(strategyId: string): Promise<void>;
 
   /** Public: an individual client submits their onboarding pack. */
   submitOnboarding(input: ClientOnboardingInput): Promise<void>;

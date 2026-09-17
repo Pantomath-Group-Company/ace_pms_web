@@ -23,6 +23,8 @@ import type {
   NewArticleInput,
   NewDocumentInput,
   UpdateDocumentInput,
+  NewStrategyNavInput,
+  StrategyNavSeries,
   OnboardingRecord,
   TeamUser,
 } from './types';
@@ -52,6 +54,7 @@ const KEYS = {
   session: 'acepms_cms_session',
   docs: 'acepms_cms_documents',
   articles: 'acepms_cms_articles',
+  strategyNav: 'acepms_cms_strategy_nav',
 };
 
 const uid = () =>
@@ -121,12 +124,14 @@ class MockBackend implements CmsBackend {
   private session: CmsSession | null;
   private documents: CmsDocument[];
   private articles: CmsArticle[];
+  private strategyNav: StrategyNavSeries[];
   private listeners = new Set<() => void>();
 
   constructor() {
     this.session = read<CmsSession>(KEYS.session);
     this.documents = read<CmsDocument[]>(KEYS.docs) ?? seedDocuments();
     this.articles = read<CmsArticle[]>(KEYS.articles) ?? seedArticles();
+    this.strategyNav = read<StrategyNavSeries[]>(KEYS.strategyNav) ?? [];
     // Persist initial seeds so refreshes are stable.
     if (!read(KEYS.docs)) write(KEYS.docs, this.documents);
     if (!read(KEYS.articles)) write(KEYS.articles, this.articles);
@@ -279,6 +284,31 @@ class MockBackend implements CmsBackend {
   async deleteArticle(id: string) {
     this.articles = this.articles.filter((a) => a.id !== id);
     write(KEYS.articles, this.articles);
+    this.emit();
+  }
+
+  /* ---- strategy NAV ---- */
+
+  listStrategyNav() {
+    return this.strategyNav;
+  }
+
+  async saveStrategyNav(input: NewStrategyNavInput): Promise<StrategyNavSeries> {
+    const series: StrategyNavSeries = {
+      ...input,
+      uploadedBy: this.session?.user.name ?? 'Team',
+      uploadedAt: nowIso(),
+    };
+    // One series per strategy — replace any existing one.
+    this.strategyNav = [series, ...this.strategyNav.filter((s) => s.strategyId !== input.strategyId)];
+    write(KEYS.strategyNav, this.strategyNav);
+    this.emit();
+    return series;
+  }
+
+  async deleteStrategyNav(strategyId: string) {
+    this.strategyNav = this.strategyNav.filter((s) => s.strategyId !== strategyId);
+    write(KEYS.strategyNav, this.strategyNav);
     this.emit();
   }
 

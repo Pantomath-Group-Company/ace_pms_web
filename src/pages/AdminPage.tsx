@@ -20,9 +20,14 @@ import {
   Loader2,
   ChevronDown,
   ExternalLink,
+  LineChart,
+  Upload,
+  RotateCcw,
 } from 'lucide-react';
-import { useAuth, useCmsArticles, useCmsDocuments } from '../lib/cms/store';
+import { useAuth, useCmsArticles, useCmsDocuments, useCmsStrategyNav } from '../lib/cms/store';
 import { cms } from '../lib/cms/backend';
+import { STRATEGIES } from '../data/content';
+import { parseNavRows, deriveNavStats, formatAsOn } from '../lib/cms/navParser';
 import {
   DOC_CATEGORIES,
   ARTICLE_KINDS,
@@ -38,7 +43,7 @@ import { useToast } from '../components/toast';
 /* Sections — the console sidebar, mapped to real ACE PMS content.     */
 /* ------------------------------------------------------------------ */
 
-type SectionType = 'doc' | 'article' | 'onboarding' | 'access';
+type SectionType = 'doc' | 'article' | 'onboarding' | 'access' | 'nav';
 
 interface Section {
   key: string;
@@ -54,6 +59,7 @@ interface Section {
 const SECTIONS: Section[] = [
   { key: 'factsheets', label: 'Factsheets', icon: FileSpreadsheet, type: 'doc', category: 'Monthly factsheets' },
   { key: 'decks', label: 'Product Decks', icon: FileText, type: 'doc', category: 'Product decks' },
+  { key: 'returns', label: 'Strategy Returns', icon: LineChart, type: 'nav' },
   { key: 'compliance', label: 'Compliance', icon: ShieldCheck, type: 'doc', category: 'Compliance & disclosures' },
   { key: 'forms', label: 'Forms', icon: ClipboardList, type: 'doc', category: 'Forms' },
   { key: 'onboarding', label: 'Onboarding', icon: Inbox, type: 'onboarding' },
@@ -168,6 +174,7 @@ export default function AdminPage() {
 
             {active.type === 'doc' && <DocList category={active.category!} search={search} />}
             {active.type === 'article' && <ArticleList kinds={active.kinds!} search={search} />}
+            {active.type === 'nav' && <NavManager />}
             {active.type === 'onboarding' && <OnboardingList search={search} />}
             {active.type === 'access' && <AccessList search={search} currentEmail={session.user.email} />}
           </div>
@@ -355,6 +362,125 @@ const DocumentEditForm: FC<{ doc: CmsDocument; onDone: () => void }> = ({ doc, o
         {busy ? 'Saving…' : 'Save changes'}
       </button>
     </form>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* Strategy Returns (NAV) — Excel upload drives the growth chart       */
+/* ------------------------------------------------------------------ */
+
+const NavManager: FC = () => {
+  const showToast = useToast();
+  const uploaded = useCmsStrategyNav();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const byId = new Map(uploaded.map((s) => [s.strategyId, s]));
+
+  const handleFile = async (strategyId: string, name: string, file: File | null) => {
+    if (!file) return;
+    setBusyId(strategyId);
+    try {
+      const XLSX = await import('xlsx');
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
+        raw: true,
+        blankrows: false,
+      }) as unknown[][];
+      const parsed = parseNavRows(rows);
+      await cms.saveStrategyNav({ strategyId, ...parsed });
+      showToast(
+        `${name} chart updated — ${parsed.labels[0]} to ${parsed.labels[parsed.labels.length - 1]}.`,
+      );
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not read that Excel file.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const reset = async (strategyId: string, name: string) => {
+    setBusyId(strategyId);
+    try {
+      await cms.deleteStrategyNav(strategyId);
+      showToast(`${name} reverted to the built-in chart data.`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not reset.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <>
+      <div className="px-5 py-3 bg-accent-50/60 border-b border-accent-100">
+        <p className="text-[11px] text-slate-500 leading-relaxed">
+          Upload one Excel per strategy with columns{' '}
+          <span className="font-bold text-accent-700">Date</span>,{' '}
+          <span className="font-bold text-accent-700">Strategy NAV</span> and{' '}
+          <span className="font-bold text-accent-700">Benchmark NAV</span> — the{' '}
+          <span className="font-bold text-accent-700">full history since inception</span> (daily or
+          month-end; the last row of each month is used). The growth chart, ₹ value, since-inception
+          return and “as on” date on the Home and Strategies pages update automatically. Raw NAV is fine —
+          it is rebased to ₹1 crore at inception.
+        </p>
+      </div>
+      {STRATEGIES.map((s) => {
+        const series = byId.get(s.id);
+        const stats = series ? deriveNavStats(series) : null;
+        const busy = busyId === s.id;
+        return (
+          <Row
+            key={s.id}
+            title={s.name}
+            tag={s.tag}
+            date={series ? `Updated ${fmtDate(series.uploadedAt)}` : undefined}
+            actions={
+              <>
+                <label
+                  className={`px-3 py-2 rounded-lg cursor-pointer inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition ${
+                    busy
+                      ? 'text-slate-300 pointer-events-none'
+                      : 'text-white bg-accent-500 hover:bg-accent-600'
+                  }`}
+                  title="Upload NAV Excel"
+                >
+                  {busy ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="w-3.5 h-3.5" />
+                  )}
+                  <span>{series ? 'Replace' : 'Upload'}</span>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    hidden
+                    disabled={busy}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      e.target.value = '';
+                      handleFile(s.id, s.name, f);
+                    }}
+                  />
+                </label>
+                {series && (
+                  <IconBtn onClick={() => reset(s.id, s.name)} title="Reset to built-in data" danger>
+                    <RotateCcw className="w-4 h-4" />
+                  </IconBtn>
+                )}
+              </>
+            }
+          >
+            <p className="text-xs text-slate-500 font-light mt-1.5">
+              {series && stats
+                ? `${series.labels[0]} – ${formatAsOn(series.asOf)} · ${stats.strategy} at ${stats.strategyCagr}% · benchmark ${stats.benchmark} at ${stats.benchmarkCagr}%`
+                : 'Using the built-in chart data. Upload an Excel to override it.'}
+            </p>
+          </Row>
+        );
+      })}
+    </>
   );
 };
 

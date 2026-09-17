@@ -11,12 +11,22 @@ export const CONTACT = {
 export const REGULATORY = {
   legalName: 'Asit C. Mehta Investment Interrmediates Ltd.',
   descriptor: 'A Pantomath Group Company',
+  cin: 'U65990MH1993PLC075388',
   sebiPms: 'INP000005801',
-  bseNse: 'INZ000186336',
-  researchAnalyst: 'INH000016490',
+  stockBroking: 'INZ000186336',
+  stockBrokingMembers: 'Member: BSE — CM/DERIVATIVES/CD, NSE — CM/DERIVATIVES/CD',
   dp: 'IN-DP-685-2022',
+  researchAnalyst: 'INH000016490',
+  apmi: 'PMS-0019',
   footnote:
     'Disclaimer: Data as on 31 July 2026. Returns ≤1 year are absolute and >1 year are annualised TWRR, based on aggregate portfolio returns post fees and expenses; individual portfolio returns may vary. Past performance is not indicative of future results. Investments in securities are subject to market risks; read all related documents carefully before investing. PMS is intended solely for HNI/UHNI investors. Rankings are based on PMS Bazaar monthly reports and internal classification criteria, excluding strategies with a vintage of less than 3 years and AMCs with aggregate AUM below ₹200 crore.',
+  links: {
+    investorCharter: 'https://www.investmentz.com/investor-charters',
+    scores: 'https://scores.sebi.gov.in/',
+    smartOdr: 'https://smartodr.in/',
+    sebiOdrCircular:
+      'https://www.sebi.gov.in/legal/master-circulars/dec-2023/online-resolution-of-disputes-in-the-indian-securities-market_80831.html',
+  },
 };
 
 export const HERO = {
@@ -47,12 +57,6 @@ export const HERO_THEMES = [
 ];
 
 export const CREDIBILITY_BAR = [
-  {
-    label: 'GROUP STRENGTH',
-    value: 'Pantomath',
-    suffix: '',
-    text: "One of India's fastest-growing investment banks — AIFs, research, execution",
-  },
   {
     label: 'VINTAGE',
     value: '9',
@@ -415,7 +419,7 @@ export const ABOUT = {
   groupStructure: {
     eyebrow: 'THE GROUP BEHIND THE PLATFORM',
     title: 'A Pantomath Group Company',
-    tagline: ['12 Years of Progress', 'Backed by 40 years of legacy.'],
+    tagline: ['12 Years of Progress', 'Backed by 40+ years of legacy.'],
     entities: [
       {
         name: 'Asit C. Mehta Investment Interrmediates Ltd.',
@@ -424,7 +428,7 @@ export const ABOUT = {
         short:
           '40+ years in Institutional Equities, Retail Broking and Portfolio Management Services. SEBI-registered PMS (Reg. No. INP000005801).',
         credential:
-          'Strong and established platform of over 40 years in Institutional Equities, Retail Broking and Portfolio Management Services.',
+          'Strong and established platform of 40+ years in Institutional Equities, Retail Broking and Portfolio Management Services.',
         primary: true,
         badge: 'ACE PMS',
         caption:
@@ -450,7 +454,7 @@ export const ABOUT = {
       {
         name: 'Pantomath Capital Advisors Pvt Ltd',
         monogram: 'PCA',
-        logo: '/logos/pantomath-trim.png',
+        logo: '/logos/pantomath-tm.jpg',
         short: 'Full-service investment bank — IPOs, QIPs, M&A and PE advisory; 150+ ECM deals.',
         credential:
           'Leading full-service investment bank — IPOs, QIPs, M&A, PE advisory; 150+ ECM transactions executed to date.',
@@ -838,22 +842,21 @@ export const RESOURCES = {
   // fallback shown when a card has no uploaded documents yet.
   groups: [
     {
-      title: 'Factsheets',
-      body: 'The latest monthly factsheets across all strategies',
-      categories: ['Monthly factsheets'],
-      items: ['ACE Multicap — July 2026', 'ACE Ten Trillion — July 2026', 'ACE Multi-Asset — July 2026'],
+      title: 'Factsheets & Product Deck',
+      body: 'Latest monthly factsheets and the strategy deck',
+      categories: ['Monthly factsheets', 'Product decks'],
+      items: [
+        'ACE Multicap — July 2026',
+        'ACE Ten Trillion — July 2026',
+        'ACE Multi-Asset — July 2026',
+        'ACE PMS Product Deck',
+      ],
     },
     {
       title: 'Compliance & Disclosures',
       body: 'Regulatory documents and investor protections',
       categories: ['Compliance & disclosures'],
-      items: ['Investor Charter', 'SEBI Disclosure Document', 'Fee illustration', 'Grievance redressal (SCORES)', 'PMS regulations'],
-    },
-    {
-      title: 'Product Deck & Forms',
-      body: 'Strategy deck and account-opening / onboarding forms',
-      categories: ['Product decks', 'Forms'],
-      items: ['ACE PMS Product Deck', 'Account opening form', 'PIS account guidance for NRIs'],
+      items: ['Investor Charter', 'SEBI Disclosure Document', 'Fee illustration', 'Investor Grievance'],
     },
   ],
 };

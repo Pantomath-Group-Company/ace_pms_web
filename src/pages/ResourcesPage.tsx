@@ -42,10 +42,14 @@ export default function ResourcesPage() {
     const cats = group.categories as readonly string[];
     let docs = documents.filter((d) => cats.includes(d.category));
     // Factsheets: show only the latest month's uploads (e.g. once Aug 2026 is
-    // up, July drops off). Falls back to all when no periods can be parsed.
+    // up, July drops off). Other categories in the same card (e.g. the product
+    // deck) are always shown. Falls back to all when no periods can be parsed.
     if (cats.includes('Monthly factsheets')) {
-      const latest = docs.reduce((max, d) => Math.max(max, factsheetPeriod(d.title)), -1);
-      if (latest >= 0) docs = docs.filter((d) => factsheetPeriod(d.title) === latest);
+      const sheets = docs.filter((d) => d.category === 'Monthly factsheets');
+      const others = docs.filter((d) => d.category !== 'Monthly factsheets');
+      const latest = sheets.reduce((max, d) => Math.max(max, factsheetPeriod(d.title)), -1);
+      const latestSheets = latest >= 0 ? sheets.filter((d) => factsheetPeriod(d.title) === latest) : sheets;
+      docs = [...latestSheets, ...others];
     }
     return {
       title: group.title,
@@ -73,7 +77,7 @@ export default function ResourcesPage() {
 
       <section className="py-20 bg-white font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {groups.map((group) => {
               const Icon = group.Icon;
               return (

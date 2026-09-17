@@ -31,7 +31,7 @@ export default function HomePage() {
       {/* ============ Credibility metrics strip ============ */}
       <section className="bg-white border-b border-slate-200/80 py-10 font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
             {CREDIBILITY_BAR.map((item) => (
               <div key={item.label} className="space-y-1 p-2">
                 <span className="text-[10px] text-slate-400 font-mono tracking-widest uppercase block font-bold">

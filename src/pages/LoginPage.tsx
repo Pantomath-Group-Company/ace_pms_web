@@ -298,7 +298,7 @@ function OrbisPanel({ kind, onBack }: { kind: 'client' | 'partner'; onBack: () =
                 tab === t ? 'bg-white text-ink-900 shadow-sm' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
-              {t === 'portal' ? 'Portal access' : 'UPI payment'}
+              {t === 'portal' ? 'Portal access' : 'UPI handle for top up'}
             </button>
           ))}
         </div>
@@ -356,10 +356,10 @@ function OrbisPanel({ kind, onBack }: { kind: 'client' | 'partner'; onBack: () =
 function UpiPayment() {
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm p-6 sm:p-7">
-      <h3 className="font-extrabold text-lg text-slate-900">UPI payment — PMS</h3>
+      <h3 className="font-extrabold text-lg text-slate-900">UPI handle for top up — PMS</h3>
       <p className="text-[11px] text-slate-500 font-light leading-relaxed mt-1.5">
-        <span className="font-bold text-rose-600">Important:</span> use the UPI ID that matches the
-        strategy your funds are intended for. Scan the QR in any UPI app, or pay to the UPI ID shown.
+        <span className="font-bold text-rose-600">Important:</span> use the UPI handle that matches the
+        strategy your funds are intended for. Scan the QR in any UPI app, or pay to the UPI handle shown.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
@@ -377,7 +377,7 @@ function UpiPayment() {
               />
             </div>
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-3">
-              UPI ID
+              UPI handle
             </span>
             <span className="text-xs font-mono text-ink-700 bg-white border border-slate-200 rounded px-2 py-1 mt-1 break-all">
               {acc.upi}
