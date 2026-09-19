@@ -77,6 +77,10 @@ function toDate(v: unknown): Date | null {
  */
 export function parseNavRows(rows: unknown[][]): ParsedNav {
   const byMonth = new Map<string, { d: Date; s: number; b: number }>();
+  // The earliest row overall is the inception — the rebase base. (Using the
+  // first month-end instead would divide out the first few days' growth and
+  // understate every later value.)
+  let base: { d: Date; s: number; b: number } | null = null;
 
   for (const r of rows) {
     if (!Array.isArray(r) || r.length < 3) continue;
@@ -84,6 +88,7 @@ export function parseNavRows(rows: unknown[][]): ParsedNav {
     const s = toNum(r[1]);
     const b = toNum(r[2]);
     if (!d || !isFinite(s) || !isFinite(b) || s <= 0 || b <= 0) continue;
+    if (!base || d.getTime() < base.d.getTime()) base = { d, s, b };
     const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
     const existing = byMonth.get(key);
     // Keep the latest row within each month (month-end), even if unsorted.
@@ -91,22 +96,28 @@ export function parseNavRows(rows: unknown[][]): ParsedNav {
   }
 
   const months = [...byMonth.values()].sort((a, b) => a.d.getTime() - b.d.getTime());
-  if (months.length < 2) {
+  if (months.length < 2 || !base) {
     throw new Error(
       'Could not read the NAV series. Expected columns: Date, Strategy NAV, Benchmark NAV — with at least two months of rows.',
     );
   }
 
-  const s0 = months[0].s;
-  const b0 = months[0].b;
+  const s0 = base.s;
+  const b0 = base.b;
+  const rebased = (m: { d: Date; s: number; b: number }): number[] => [
+    Math.round((m.s / s0) * 10000) / 10000,
+    Math.round((m.b / b0) * 10000) / 10000,
+  ];
+
+  // Anchor the chart at ₹1 crore on the inception date: if the inception row is
+  // earlier than the first kept month-end, prepend it so the line starts at 1.0.
+  const series = base.d.getTime() < months[0].d.getTime() ? [base, ...months] : months;
+
   return {
-    since: months[0].d.toISOString().slice(0, 10),
+    since: base.d.toISOString().slice(0, 10),
     asOf: months[months.length - 1].d.toISOString().slice(0, 10),
-    labels: months.map((m) => `${MON[m.d.getUTCMonth()]} ${m.d.getUTCFullYear()}`),
-    points: months.map((m) => [
-      Math.round((m.s / s0) * 10000) / 10000,
-      Math.round((m.b / b0) * 10000) / 10000,
-    ]),
+    labels: series.map((m) => `${MON[m.d.getUTCMonth()]} ${m.d.getUTCFullYear()}`),
+    points: series.map(rebased),
   };
 }
 
