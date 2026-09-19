@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { PERFORMANCE } from '../data/content';
 import { CountUp, prefersReducedMotion, useInView } from './motion';
+import { useAsOnDate, applyAsOn } from '../lib/asOn';
 
 function GrowthCard({ g }: { g: (typeof PERFORMANCE.growth)[number] }) {
   const { ref, inView } = useInView<HTMLDivElement>();
@@ -60,7 +61,9 @@ function GrowthCard({ g }: { g: (typeof PERFORMANCE.growth)[number] }) {
 }
 
 // "Growth of ₹1 crore" — the emotional centrepiece: proof right after philosophy.
-export const GrowthShowcase = () => (
+export const GrowthShowcase = () => {
+  const asOn = useAsOnDate();
+  return (
   <section id="growth" className="py-24 bg-[#FAFAFA] border-b border-slate-200/60 font-sans">
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center max-w-2xl mx-auto space-y-3 mb-14">
@@ -79,7 +82,7 @@ export const GrowthShowcase = () => (
       </div>
 
       <p className="text-center text-[11px] text-slate-400 italic mt-10 max-w-2xl mx-auto leading-relaxed">
-        {PERFORMANCE.growthNote}
+        {applyAsOn(PERFORMANCE.growthNote, asOn)}
       </p>
 
       <div className="text-center mt-8">
@@ -92,4 +95,5 @@ export const GrowthShowcase = () => (
       </div>
     </div>
   </section>
-);
+  );
+};

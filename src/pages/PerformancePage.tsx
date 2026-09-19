@@ -1,6 +1,7 @@
 import { PERFORMANCE } from '../data/content';
 import { PageHero, SectionHeading, Disclaimer } from '../components/shared';
 import { useResolvedPerformanceTables } from '../lib/performance';
+import { useAsOnDate, applyAsOn } from '../lib/asOn';
 
 const PERIODS = ['1 Yr', '3 Yr', '5 Yr', 'Since Incep.'];
 
@@ -8,6 +9,7 @@ const fmt = (v: number) => `${v.toFixed(1)}%`;
 
 export default function PerformancePage() {
   const tables = useResolvedPerformanceTables();
+  const asOn = useAsOnDate();
   return (
     <>
       <PageHero
@@ -77,7 +79,7 @@ export default function PerformancePage() {
               </div>
             ))}
           </div>
-          <Disclaimer>{PERFORMANCE.tableNote}</Disclaimer>
+          <Disclaimer>{applyAsOn(PERFORMANCE.tableNote, asOn)}</Disclaimer>
         </div>
       </section>
     </>

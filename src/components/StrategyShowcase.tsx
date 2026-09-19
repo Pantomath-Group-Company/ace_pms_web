@@ -6,6 +6,7 @@ import strategyNav from '../data/strategyNav.json';
 import { useTopMonthlyStrategyId } from '../lib/topPerformer';
 import { useCmsStrategyNav } from '../lib/cms/store';
 import { useResolvedPerformanceTables } from '../lib/performance';
+import { useAsOnDate } from '../lib/asOn';
 import { deriveNavStats } from '../lib/cms/navParser';
 import { Disclaimer } from './shared';
 import { useToast } from './toast';
@@ -91,6 +92,7 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
   const showToast = useToast();
   const uploadedNav = useCmsStrategyNav();
   const perfTables = useResolvedPerformanceTables();
+  const globalAsOn = useAsOnDate();
   const topStrategyId = useTopMonthlyStrategyId();
   const [activeId, setActiveId] = useState<string>(
     initialTabId && STRATEGIES.some((s) => s.id === initialTabId)
@@ -489,7 +491,7 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
       ) : (
         <Disclaimer>
           Growth-of-₹1-crore curves reflect each strategy's actual month-end NAV since inception,
-          all figures as on 31 July 2026. Returns ≤1 year are absolute and &gt;1 year are annualised
+          all figures as on {globalAsOn}. Returns ≤1 year are absolute and &gt;1 year are annualised
           TWRR, based on aggregate portfolio returns post fees and expenses; individual portfolio
           returns may vary. Past performance is not indicative of future results. Investments in
           securities are subject to market risks; read all related documents carefully before

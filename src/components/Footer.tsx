@@ -2,9 +2,11 @@ import { Link } from 'react-router-dom';
 import { Mail, Phone, MapPin, Scale, ArrowUpRight } from 'lucide-react';
 import { CONTACT, REGULATORY, STRATEGIES } from '../data/content';
 import { useTopMonthlyStrategyId } from '../lib/topPerformer';
+import { useAsOnDate, applyAsOn } from '../lib/asOn';
 
 export const Footer = () => {
   const topStrategyId = useTopMonthlyStrategyId();
+  const asOn = useAsOnDate();
   return (
     <footer className="bg-ink-900 text-ink-100/70 border-t border-ink-800 pt-16 pb-12 font-sans overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -120,7 +122,7 @@ export const Footer = () => {
             <p>APMI Member ID 0019 · AMFI Registration Number: ARN-3086 · PFRDA 21092018</p>
           </div>
 
-          <p>*{REGULATORY.footnote}</p>
+          <p>*{applyAsOn(REGULATORY.footnote, asOn)}</p>
 
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-ink-800 pt-6 text-[10px] text-ink-200/40 font-mono">
             <span>
