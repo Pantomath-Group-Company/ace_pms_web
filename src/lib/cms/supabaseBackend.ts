@@ -12,6 +12,8 @@
 import { supabase, BUCKETS } from './supabaseClient';
 import { REDIRECT_EMAIL } from './config';
 import type {
+  CallbackInput,
+  CallbackRecord,
   ClientOnboardingInput,
   CmsArticle,
   CmsBackend,
@@ -468,6 +470,63 @@ class SupabaseBackend implements CmsBackend {
     } catch {
       /* Edge function not deployed yet — submission is safe in the DB. */
     }
+  }
+
+  async submitCallback(input: CallbackInput) {
+    const { error } = await supabase.from('callbacks').insert({
+      name: input.name,
+      mobile: input.mobile,
+      email: input.email,
+      corpus: input.corpus ?? null,
+      visitor_type: input.visitorType ?? null,
+      city: input.city ?? null,
+      message: input.message ?? null,
+    });
+    if (error) throw new Error(error.message);
+
+    // Fire the email notification. Non-fatal: the enquiry is already stored.
+    try {
+      await supabase.functions.invoke('notify', {
+        body: {
+          type: 'callback',
+          to: REDIRECT_EMAIL,
+          submission: {
+            fullName: input.name,
+            email: input.email,
+            mobile: input.mobile,
+            notes: [
+              input.visitorType && `Type: ${input.visitorType}`,
+              input.corpus && `Corpus: ${input.corpus}`,
+              input.city && `City: ${input.city}`,
+              input.message,
+            ]
+              .filter(Boolean)
+              .join(' · '),
+          },
+        },
+      });
+    } catch {
+      /* Edge function not deployed yet — enquiry is safe in the DB. */
+    }
+  }
+
+  async listCallbacks(): Promise<CallbackRecord[]> {
+    const { data, error } = await supabase
+      .from('callbacks')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error || !data) return [];
+    return data.map((r: any) => ({
+      id: r.id,
+      name: r.name,
+      mobile: r.mobile,
+      email: r.email,
+      corpus: r.corpus ?? undefined,
+      visitorType: r.visitor_type ?? undefined,
+      city: r.city ?? undefined,
+      message: r.message ?? undefined,
+      createdAt: r.created_at,
+    }));
   }
 
   async listOnboarding(): Promise<OnboardingRecord[]> {

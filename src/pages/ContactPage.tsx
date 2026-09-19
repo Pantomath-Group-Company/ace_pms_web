@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, ShieldCheck } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, ShieldCheck, Loader2 } from 'lucide-react';
 import { CONTACT } from '../data/content';
 import { PageHero } from '../components/shared';
 import { useToast } from '../components/toast';
+import { cms } from '../lib/cms/backend';
 
 const CORPUS_OPTIONS = ['₹50 Lakh – ₹2 Crore', '₹2 Crore – ₹5 Crore', '₹5 Crore – ₹15 Crore', '₹15 Crore+'];
 const VISITOR_OPTIONS = ['Client', 'Distributor'];
 
 export default function ContactPage() {
   const showToast = useToast();
+  const [busy, setBusy] = useState(false);
   const [form, setForm] = useState({
     name: '',
     mobile: '',
@@ -19,16 +21,32 @@ export default function ContactPage() {
     message: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.mobile || !form.email) {
       showToast('Please fill in your name, mobile and email so we can reach you.');
       return;
     }
-    showToast(
-      `Thank you ${form.name}! Your enquiry has been recorded. A portfolio specialist will call you back — we typically respond within one business day.`
-    );
-    setForm({ name: '', mobile: '', email: '', corpus: CORPUS_OPTIONS[0], visitorType: VISITOR_OPTIONS[0], city: '', message: '' });
+    setBusy(true);
+    try {
+      await cms.submitCallback({
+        name: form.name.trim(),
+        mobile: form.mobile.trim(),
+        email: form.email.trim(),
+        corpus: form.corpus,
+        visitorType: form.visitorType,
+        city: form.city.trim() || undefined,
+        message: form.message.trim() || undefined,
+      });
+      showToast(
+        `Thank you ${form.name}! Your enquiry has been recorded. A portfolio specialist will call you back — we typically respond within one business day.`
+      );
+      setForm({ name: '', mobile: '', email: '', corpus: CORPUS_OPTIONS[0], visitorType: VISITOR_OPTIONS[0], city: '', message: '' });
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not submit your enquiry. Please try again or call us.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const inputClass =
@@ -140,9 +158,11 @@ export default function ContactPage() {
                 </div>
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-xl text-xs font-bold text-white uppercase tracking-wider bg-accent-500 hover:bg-accent-600 shadow-md transition"
+                  disabled={busy}
+                  className="w-full py-3 rounded-xl text-xs font-bold text-white uppercase tracking-wider bg-accent-500 hover:bg-accent-600 disabled:opacity-60 shadow-md transition inline-flex items-center justify-center gap-2"
                 >
-                  Request a Callback
+                  {busy && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {busy ? 'Submitting…' : 'Request a Callback'}
                 </button>
                 <div className="text-[10px] text-slate-400 flex items-center gap-1.5">
                   <ShieldCheck className="w-4 h-4 text-emerald-600" />

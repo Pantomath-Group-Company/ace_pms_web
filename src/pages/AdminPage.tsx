@@ -8,6 +8,7 @@ import {
   Newspaper,
   Clapperboard,
   Inbox,
+  PhoneCall,
   Users,
   Search,
   LogOut,
@@ -42,6 +43,7 @@ import {
   type DocCategory,
   type ArticleKind,
   type OnboardingRecord,
+  type CallbackRecord,
   type TeamUser,
 } from '../lib/cms/types';
 import { useToast } from '../components/toast';
@@ -50,7 +52,7 @@ import { useToast } from '../components/toast';
 /* Sections — the console sidebar, mapped to real ACE PMS content.     */
 /* ------------------------------------------------------------------ */
 
-type SectionType = 'doc' | 'article' | 'onboarding' | 'access' | 'nav' | 'perf';
+type SectionType = 'doc' | 'article' | 'onboarding' | 'access' | 'nav' | 'perf' | 'callback';
 
 interface Section {
   key: string;
@@ -71,6 +73,7 @@ const SECTIONS: Section[] = [
   { key: 'compliance', label: 'Compliance', icon: ShieldCheck, type: 'doc', category: 'Compliance & disclosures' },
   { key: 'forms', label: 'Forms', icon: ClipboardList, type: 'doc', category: 'Forms' },
   { key: 'onboarding', label: 'Onboarding', icon: Inbox, type: 'onboarding' },
+  { key: 'enquiries', label: 'Enquiries', icon: PhoneCall, type: 'callback' },
   { key: 'access', label: 'Access', icon: Users, type: 'access' },
 ];
 
@@ -185,6 +188,7 @@ export default function AdminPage() {
             {active.type === 'nav' && <NavManager />}
             {active.type === 'perf' && <PerfManager />}
             {active.type === 'onboarding' && <OnboardingList search={search} />}
+            {active.type === 'callback' && <CallbackList search={search} />}
             {active.type === 'access' && <AccessList search={search} currentEmail={session.user.email} />}
           </div>
         </main>
@@ -749,6 +753,67 @@ const OnboardingList: FC<{ search: string }> = ({ search }) => {
         </Row>
         );
       })}
+    </>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* Enquiries (Request-a-callback submissions)                         */
+/* ------------------------------------------------------------------ */
+
+const CallbackList: FC<{ search: string }> = ({ search }) => {
+  const [rows, setRows] = useState<CallbackRecord[] | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    cms.listCallbacks().then((r) => active && setRows(r));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const q = search.trim().toLowerCase();
+  const filtered = useMemo(
+    () =>
+      (rows ?? []).filter(
+        (r) =>
+          !q ||
+          r.name.toLowerCase().includes(q) ||
+          r.email.toLowerCase().includes(q) ||
+          r.mobile.toLowerCase().includes(q) ||
+          (r.city ?? '').toLowerCase().includes(q),
+      ),
+    [rows, q],
+  );
+
+  if (rows === null) return <Empty label="Loading…" />;
+  if (filtered.length === 0) return <Empty label="No callback enquiries yet." />;
+
+  return (
+    <>
+      {filtered.map((r) => (
+        <Row
+          key={r.id}
+          title={r.name}
+          tag={r.visitorType || 'Enquiry'}
+          date={fmtDate(r.createdAt)}
+          actions={
+            <IconBtn onClick={() => setOpenId(openId === r.id ? null : r.id)} title="Details">
+              <ChevronDown className={`w-4 h-4 transition-transform ${openId === r.id ? 'rotate-180' : ''}`} />
+            </IconBtn>
+          }
+        >
+          <p className="text-xs text-slate-500 font-light mt-1.5">
+            {r.email} · {r.mobile}
+            {r.city ? ` · ${r.city}` : ''}
+            {r.corpus ? ` · ${r.corpus}` : ''}
+          </p>
+          {openId === r.id && r.message && (
+            <p className="text-xs text-slate-500 italic mt-2">“{r.message}”</p>
+          )}
+        </Row>
+      ))}
     </>
   );
 };

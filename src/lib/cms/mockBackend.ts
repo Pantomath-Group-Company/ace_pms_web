@@ -14,6 +14,8 @@
 
 import { RESOURCES, INSIGHT_PLACEHOLDERS } from '../../data/content';
 import type {
+  CallbackInput,
+  CallbackRecord,
   ClientOnboardingInput,
   CmsArticle,
   CmsBackend,
@@ -358,6 +360,16 @@ class MockBackend implements CmsBackend {
     };
     write('acepms_cms_onboarding', [record, ...existing]);
     // No email is sent in mock mode.
+  }
+
+  async submitCallback(input: CallbackInput) {
+    const existing = read<CallbackRecord[]>('acepms_cms_callbacks') ?? [];
+    const record: CallbackRecord = { id: uid(), ...input, createdAt: nowIso() };
+    write('acepms_cms_callbacks', [record, ...existing]);
+  }
+
+  async listCallbacks(): Promise<CallbackRecord[]> {
+    return read<CallbackRecord[]>('acepms_cms_callbacks') ?? [];
   }
 
   async listOnboarding(): Promise<OnboardingRecord[]> {

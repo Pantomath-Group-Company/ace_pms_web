@@ -169,6 +169,22 @@ export interface OnboardingRecord {
   documents: { key: string; label: string; path?: string; fileName: string }[];
 }
 
+/** A "Request a callback" enquiry from the public Contact page. */
+export interface CallbackInput {
+  name: string;
+  mobile: string;
+  email: string;
+  corpus?: string;
+  visitorType?: string;
+  city?: string;
+  message?: string;
+}
+
+export interface CallbackRecord extends CallbackInput {
+  id: string;
+  createdAt: string;
+}
+
 /** A team member account (all are Super Admins). */
 export interface TeamUser {
   id: string;
@@ -223,6 +239,11 @@ export interface CmsBackend {
 
   /** Public: an individual client submits their onboarding pack. */
   submitOnboarding(input: ClientOnboardingInput): Promise<void>;
+
+  /** Public: a "request a callback" enquiry from the Contact page. */
+  submitCallback(input: CallbackInput): Promise<void>;
+  /** Team: read callback enquiries. */
+  listCallbacks(): Promise<CallbackRecord[]>;
 
   /** Team: read onboarding submissions and mint short-lived file links. */
   listOnboarding(): Promise<OnboardingRecord[]>;

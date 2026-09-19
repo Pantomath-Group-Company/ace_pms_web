@@ -45,6 +45,20 @@ create table if not exists public.client_onboarding (
   created_at timestamptz not null default now()
 );
 
+-- "Request a callback" enquiries from the public Contact page.
+create table if not exists public.callbacks (
+  id           uuid primary key default gen_random_uuid(),
+  name         text not null,
+  mobile       text not null,
+  email        text not null,
+  corpus       text,
+  visitor_type text,
+  city         text,
+  message      text,
+  status       text not null default 'new',
+  created_at   timestamptz not null default now()
+);
+
 -- One month-end NAV series per strategy, driving the growth chart on the Home
 -- and Strategies pages. Uploaded from the Console (parsed from an Excel file).
 create table if not exists public.strategy_nav (
@@ -75,6 +89,7 @@ create table if not exists public.strategy_performance (
 alter table public.documents         enable row level security;
 alter table public.articles          enable row level security;
 alter table public.client_onboarding enable row level security;
+alter table public.callbacks         enable row level security;
 alter table public.strategy_nav      enable row level security;
 alter table public.strategy_performance enable row level security;
 
@@ -110,6 +125,13 @@ create policy "onboarding public insert" on public.client_onboarding for insert 
 
 drop policy if exists "onboarding team read" on public.client_onboarding;
 create policy "onboarding team read" on public.client_onboarding for select to authenticated using (true);
+
+-- Callbacks: the public may submit; only the team may read
+drop policy if exists "callbacks public insert" on public.callbacks;
+create policy "callbacks public insert" on public.callbacks for insert to anon, authenticated with check (true);
+
+drop policy if exists "callbacks team read" on public.callbacks;
+create policy "callbacks team read" on public.callbacks for select to authenticated using (true);
 
 -- ---------------------------------------------------------------------------
 -- Storage buckets
