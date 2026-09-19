@@ -1,11 +1,13 @@
 import { PERFORMANCE } from '../data/content';
 import { PageHero, SectionHeading, Disclaimer } from '../components/shared';
+import { useResolvedPerformanceTables } from '../lib/performance';
 
 const PERIODS = ['1 Yr', '3 Yr', '5 Yr', 'Since Incep.'];
 
 const fmt = (v: number) => `${v.toFixed(1)}%`;
 
 export default function PerformancePage() {
+  const tables = useResolvedPerformanceTables();
   return (
     <>
       <PageHero
@@ -28,7 +30,7 @@ export default function PerformancePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading title="Performance (TWRR)" />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {PERFORMANCE.tables.map((table) => (
+            {tables.map((table) => (
               <div
                 key={table.strategy}
                 className="bg-slate-50 border border-slate-200/80 rounded-2xl p-5 sm:p-6 shadow-sm"

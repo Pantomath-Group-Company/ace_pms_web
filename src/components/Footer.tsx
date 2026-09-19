@@ -71,7 +71,6 @@ export const Footer = () => {
               <li><Link to="/about" className="hover:text-white transition">About Us</Link></li>
               <li><Link to="/why-ace-pms" className="hover:text-white transition">Why ACE PMS</Link></li>
               <li><Link to="/performance" className="hover:text-white transition">Performance</Link></li>
-              <li><Link to="/resources" className="hover:text-white transition">Disclosures</Link></li>
               <li><Link to="/insights" className="hover:text-white transition">Insights & Media</Link></li>
               <li><Link to="/resources" className="hover:text-white transition">Downloads</Link></li>
               <li><Link to="/contact" className="hover:text-white transition">Contact us</Link></li>
@@ -117,9 +116,8 @@ export const Footer = () => {
               {REGULATORY.stockBrokingMembers}) · DP: {REGULATORY.dp} · Research Analyst{' '}
               {REGULATORY.researchAnalyst}
             </p>
-            <p>APMI Member ID</p>
-            <p>AMFI Registration Number: ARN-3086</p>
-            <p>PFRDA 21092018</p>
+            <p className="font-semibold text-ink-100/80 pt-1">Other Registrations</p>
+            <p>APMI Member ID 0019 · AMFI Registration Number: ARN-3086 · PFRDA 21092018</p>
           </div>
 
           <p>*{REGULATORY.footnote}</p>

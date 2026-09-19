@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { CheckCircle2, Download } from 'lucide-react';
-import { STRATEGIES, PERFORMANCE } from '../data/content';
+import { STRATEGIES } from '../data/content';
 import strategyNav from '../data/strategyNav.json';
 import { useTopMonthlyStrategyId } from '../lib/topPerformer';
 import { useCmsStrategyNav } from '../lib/cms/store';
+import { useResolvedPerformanceTables } from '../lib/performance';
 import { deriveNavStats } from '../lib/cms/navParser';
 import { Disclaimer } from './shared';
 import { useToast } from './toast';
@@ -89,6 +90,7 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
 }) => {
   const showToast = useToast();
   const uploadedNav = useCmsStrategyNav();
+  const perfTables = useResolvedPerformanceTables();
   const topStrategyId = useTopMonthlyStrategyId();
   const [activeId, setActiveId] = useState<string>(
     initialTabId && STRATEGIES.some((s) => s.id === initialTabId)
@@ -111,7 +113,7 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
   };
 
   const active = STRATEGIES.find((s) => s.id === activeId) || STRATEGIES[0];
-  const perf = PERFORMANCE.tables.find((t) => t.strategy === active.name);
+  const perf = perfTables.find((t) => t.strategy === active.name);
   const benchmarkName =
     perf?.benchmarkName ?? active.keyFacts.find((f) => f.k === 'Benchmark')?.v ?? 'Benchmark';
   // Chart-friendly short name (drops "Opportunities" so it fits one line).

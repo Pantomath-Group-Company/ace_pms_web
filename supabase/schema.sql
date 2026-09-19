@@ -58,6 +58,17 @@ create table if not exists public.strategy_nav (
   updated_at  timestamptz not null default now()
 );
 
+-- One horizon-returns row per strategy, driving the Performance page tables and
+-- the returns grid in the strategy showcase. Arrays are [1Y, 3Y, 5Y, SI] TWRR %.
+create table if not exists public.strategy_performance (
+  strategy_id text primary key,                    -- multicap | tentrillion | multiasset
+  portfolio   jsonb not null default '[]'::jsonb,  -- [1Y, 3Y, 5Y, SinceInception]
+  benchmark   jsonb not null default '[]'::jsonb,  -- [1Y, 3Y, 5Y, SinceInception]
+  uploaded_by text,
+  created_at  timestamptz not null default now(),
+  updated_at  timestamptz not null default now()
+);
+
 -- ---------------------------------------------------------------------------
 -- Row Level Security
 -- ---------------------------------------------------------------------------
@@ -65,6 +76,7 @@ alter table public.documents         enable row level security;
 alter table public.articles          enable row level security;
 alter table public.client_onboarding enable row level security;
 alter table public.strategy_nav      enable row level security;
+alter table public.strategy_performance enable row level security;
 
 -- Public site content: anyone may read
 drop policy if exists "documents public read" on public.documents;
@@ -85,6 +97,12 @@ create policy "strategy_nav public read" on public.strategy_nav for select using
 
 drop policy if exists "strategy_nav team write" on public.strategy_nav;
 create policy "strategy_nav team write" on public.strategy_nav for all to authenticated using (true) with check (true);
+
+drop policy if exists "strategy_performance public read" on public.strategy_performance;
+create policy "strategy_performance public read" on public.strategy_performance for select using (true);
+
+drop policy if exists "strategy_performance team write" on public.strategy_performance;
+create policy "strategy_performance team write" on public.strategy_performance for all to authenticated using (true) with check (true);
 
 -- Onboarding: the public may submit; only the team may read
 drop policy if exists "onboarding public insert" on public.client_onboarding;

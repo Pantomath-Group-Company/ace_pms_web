@@ -25,6 +25,8 @@ import type {
   UpdateDocumentInput,
   NewStrategyNavInput,
   StrategyNavSeries,
+  NewStrategyPerformanceInput,
+  StrategyPerformance,
   OnboardingRecord,
   TeamUser,
 } from './types';
@@ -55,6 +57,7 @@ const KEYS = {
   docs: 'acepms_cms_documents',
   articles: 'acepms_cms_articles',
   strategyNav: 'acepms_cms_strategy_nav',
+  performance: 'acepms_cms_performance',
 };
 
 const uid = () =>
@@ -125,6 +128,7 @@ class MockBackend implements CmsBackend {
   private documents: CmsDocument[];
   private articles: CmsArticle[];
   private strategyNav: StrategyNavSeries[];
+  private performance: StrategyPerformance[];
   private listeners = new Set<() => void>();
 
   constructor() {
@@ -132,6 +136,7 @@ class MockBackend implements CmsBackend {
     this.documents = read<CmsDocument[]>(KEYS.docs) ?? seedDocuments();
     this.articles = read<CmsArticle[]>(KEYS.articles) ?? seedArticles();
     this.strategyNav = read<StrategyNavSeries[]>(KEYS.strategyNav) ?? [];
+    this.performance = read<StrategyPerformance[]>(KEYS.performance) ?? [];
     // Persist initial seeds so refreshes are stable.
     if (!read(KEYS.docs)) write(KEYS.docs, this.documents);
     if (!read(KEYS.articles)) write(KEYS.articles, this.articles);
@@ -309,6 +314,30 @@ class MockBackend implements CmsBackend {
   async deleteStrategyNav(strategyId: string) {
     this.strategyNav = this.strategyNav.filter((s) => s.strategyId !== strategyId);
     write(KEYS.strategyNav, this.strategyNav);
+    this.emit();
+  }
+
+  /* ---- strategy performance (horizon returns) ---- */
+
+  listPerformance() {
+    return this.performance;
+  }
+
+  async savePerformance(input: NewStrategyPerformanceInput): Promise<StrategyPerformance> {
+    const row: StrategyPerformance = {
+      ...input,
+      uploadedBy: this.session?.user.name ?? 'Team',
+      uploadedAt: nowIso(),
+    };
+    this.performance = [row, ...this.performance.filter((p) => p.strategyId !== input.strategyId)];
+    write(KEYS.performance, this.performance);
+    this.emit();
+    return row;
+  }
+
+  async deletePerformance(strategyId: string) {
+    this.performance = this.performance.filter((p) => p.strategyId !== strategyId);
+    write(KEYS.performance, this.performance);
     this.emit();
   }
 

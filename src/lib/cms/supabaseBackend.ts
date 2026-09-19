@@ -22,6 +22,8 @@ import type {
   UpdateDocumentInput,
   NewStrategyNavInput,
   StrategyNavSeries,
+  NewStrategyPerformanceInput,
+  StrategyPerformance,
   OnboardingRecord,
   TeamUser,
 } from './types';
@@ -94,6 +96,16 @@ function mapStrategyNav(row: any): StrategyNavSeries {
   };
 }
 
+function mapPerformance(row: any): StrategyPerformance {
+  return {
+    strategyId: row.strategy_id,
+    portfolio: Array.isArray(row.portfolio) ? row.portfolio : [],
+    benchmark: Array.isArray(row.benchmark) ? row.benchmark : [],
+    uploadedBy: row.uploaded_by ?? 'Team',
+    uploadedAt: row.updated_at ?? row.created_at,
+  };
+}
+
 class SupabaseBackend implements CmsBackend {
   readonly mode = 'supabase' as const;
 
@@ -101,6 +113,7 @@ class SupabaseBackend implements CmsBackend {
   private documents: CmsDocument[] = [];
   private articles: CmsArticle[] = [];
   private strategyNav: StrategyNavSeries[] = [];
+  private performance: StrategyPerformance[] = [];
   private listeners = new Set<() => void>();
 
   constructor() {
@@ -115,6 +128,7 @@ class SupabaseBackend implements CmsBackend {
     void this.refreshDocuments();
     void this.refreshArticles();
     void this.refreshStrategyNav();
+    void this.refreshPerformance();
   }
 
   private emit() {
@@ -157,6 +171,17 @@ class SupabaseBackend implements CmsBackend {
       .order('updated_at', { ascending: false });
     if (!error && data) {
       this.strategyNav = data.map(mapStrategyNav);
+      this.emit();
+    }
+  }
+
+  private async refreshPerformance() {
+    const { data, error } = await supabase
+      .from('strategy_performance')
+      .select('*')
+      .order('updated_at', { ascending: false });
+    if (!error && data) {
+      this.performance = data.map(mapPerformance);
       this.emit();
     }
   }
@@ -362,6 +387,41 @@ class SupabaseBackend implements CmsBackend {
     const { error } = await supabase.from('strategy_nav').delete().eq('strategy_id', strategyId);
     if (error) throw new Error(error.message);
     await this.refreshStrategyNav();
+  }
+
+  /* ---- strategy performance (horizon returns) ---- */
+
+  listPerformance() {
+    return this.performance;
+  }
+
+  async savePerformance(input: NewStrategyPerformanceInput): Promise<StrategyPerformance> {
+    const { data, error } = await supabase
+      .from('strategy_performance')
+      .upsert(
+        {
+          strategy_id: input.strategyId,
+          portfolio: input.portfolio,
+          benchmark: input.benchmark,
+          uploaded_by: this.session?.user.name ?? 'Team',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'strategy_id' },
+      )
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    await this.refreshPerformance();
+    return mapPerformance(data);
+  }
+
+  async deletePerformance(strategyId: string) {
+    const { error } = await supabase
+      .from('strategy_performance')
+      .delete()
+      .eq('strategy_id', strategyId);
+    if (error) throw new Error(error.message);
+    await this.refreshPerformance();
   }
 
   /* ---- onboarding ---- */

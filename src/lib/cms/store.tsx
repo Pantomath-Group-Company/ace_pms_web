@@ -13,7 +13,13 @@ import {
   type ReactNode,
 } from 'react';
 import { cms } from './backend';
-import type { CmsArticle, CmsDocument, CmsSession, StrategyNavSeries } from './types';
+import type {
+  CmsArticle,
+  CmsDocument,
+  CmsSession,
+  StrategyNavSeries,
+  StrategyPerformance,
+} from './types';
 
 /* ---------------- Auth ---------------- */
 
@@ -77,4 +83,8 @@ export function useCmsArticles(): CmsArticle[] {
 
 export function useCmsStrategyNav(): StrategyNavSeries[] {
   return useSyncExternalStore(subscribe, () => cms.listStrategyNav());
+}
+
+export function useCmsPerformance(): StrategyPerformance[] {
+  return useSyncExternalStore(subscribe, () => cms.listPerformance());
 }

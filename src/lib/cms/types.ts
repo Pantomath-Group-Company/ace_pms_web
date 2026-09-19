@@ -110,6 +110,25 @@ export interface NewStrategyNavInput {
   points: number[][];
 }
 
+/**
+ * Per-strategy horizon-returns row for the Performance page (and the returns
+ * grid in the strategy showcase). Each array is [1Y, 3Y, 5Y, Since-Inception]
+ * TWRR %. Alpha is derived (portfolio − benchmark). Uploaded via the Console.
+ */
+export interface StrategyPerformance {
+  strategyId: string;
+  portfolio: number[];
+  benchmark: number[];
+  uploadedBy: string;
+  uploadedAt: string; // ISO timestamp
+}
+
+export interface NewStrategyPerformanceInput {
+  strategyId: string;
+  portfolio: number[];
+  benchmark: number[];
+}
+
 /** The six KYC documents required to onboard an individual client. */
 export const ONBOARDING_DOCS = [
   { key: 'pan', label: 'PAN Card' },
@@ -196,6 +215,11 @@ export interface CmsBackend {
   listStrategyNav(): StrategyNavSeries[];
   saveStrategyNav(input: NewStrategyNavInput): Promise<StrategyNavSeries>;
   deleteStrategyNav(strategyId: string): Promise<void>;
+
+  /** Per-strategy horizon returns driving the Performance page (Console-uploaded). */
+  listPerformance(): StrategyPerformance[];
+  savePerformance(input: NewStrategyPerformanceInput): Promise<StrategyPerformance>;
+  deletePerformance(strategyId: string): Promise<void>;
 
   /** Public: an individual client submits their onboarding pack. */
   submitOnboarding(input: ClientOnboardingInput): Promise<void>;

@@ -21,13 +21,20 @@ import {
   ChevronDown,
   ExternalLink,
   LineChart,
+  BarChart3,
   Upload,
   RotateCcw,
 } from 'lucide-react';
-import { useAuth, useCmsArticles, useCmsDocuments, useCmsStrategyNav } from '../lib/cms/store';
+import {
+  useAuth,
+  useCmsArticles,
+  useCmsDocuments,
+  useCmsStrategyNav,
+  useCmsPerformance,
+} from '../lib/cms/store';
 import { cms } from '../lib/cms/backend';
 import { STRATEGIES } from '../data/content';
-import { parseNavRows, deriveNavStats, formatAsOn } from '../lib/cms/navParser';
+import { parseNavRows, parsePerformanceRows, deriveNavStats, formatAsOn } from '../lib/cms/navParser';
 import {
   DOC_CATEGORIES,
   ARTICLE_KINDS,
@@ -43,7 +50,7 @@ import { useToast } from '../components/toast';
 /* Sections — the console sidebar, mapped to real ACE PMS content.     */
 /* ------------------------------------------------------------------ */
 
-type SectionType = 'doc' | 'article' | 'onboarding' | 'access' | 'nav';
+type SectionType = 'doc' | 'article' | 'onboarding' | 'access' | 'nav' | 'perf';
 
 interface Section {
   key: string;
@@ -59,7 +66,8 @@ interface Section {
 const SECTIONS: Section[] = [
   { key: 'factsheets', label: 'Factsheets', icon: FileSpreadsheet, type: 'doc', category: 'Monthly factsheets' },
   { key: 'decks', label: 'Product Decks', icon: FileText, type: 'doc', category: 'Product decks' },
-  { key: 'returns', label: 'Strategy Returns', icon: LineChart, type: 'nav' },
+  { key: 'strategy', label: 'Strategy', icon: LineChart, type: 'nav' },
+  { key: 'performance', label: 'Performance', icon: BarChart3, type: 'perf' },
   { key: 'compliance', label: 'Compliance', icon: ShieldCheck, type: 'doc', category: 'Compliance & disclosures' },
   { key: 'forms', label: 'Forms', icon: ClipboardList, type: 'doc', category: 'Forms' },
   { key: 'onboarding', label: 'Onboarding', icon: Inbox, type: 'onboarding' },
@@ -175,6 +183,7 @@ export default function AdminPage() {
             {active.type === 'doc' && <DocList category={active.category!} search={search} />}
             {active.type === 'article' && <ArticleList kinds={active.kinds!} search={search} />}
             {active.type === 'nav' && <NavManager />}
+            {active.type === 'perf' && <PerfManager />}
             {active.type === 'onboarding' && <OnboardingList search={search} />}
             {active.type === 'access' && <AccessList search={search} currentEmail={session.user.email} />}
           </div>
@@ -476,6 +485,125 @@ const NavManager: FC = () => {
               {series && stats
                 ? `${series.labels[0]} – ${formatAsOn(series.asOf)} · ${stats.strategy} at ${stats.strategyCagr}% · benchmark ${stats.benchmark} at ${stats.benchmarkCagr}%`
                 : 'Using the built-in chart data. Upload an Excel to override it.'}
+            </p>
+          </Row>
+        );
+      })}
+    </>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* Performance — Excel upload drives the horizon-returns tables        */
+/* ------------------------------------------------------------------ */
+
+const PERF_PERIODS = ['1Y', '3Y', '5Y', 'SI'];
+
+const PerfManager: FC = () => {
+  const showToast = useToast();
+  const uploaded = useCmsPerformance();
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const byId = new Map(uploaded.map((p) => [p.strategyId, p]));
+
+  const handleFile = async (strategyId: string, name: string, file: File | null) => {
+    if (!file) return;
+    setBusyId(strategyId);
+    try {
+      const XLSX = await import('xlsx');
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
+        raw: true,
+        blankrows: false,
+      }) as unknown[][];
+      const parsed = parsePerformanceRows(rows);
+      await cms.savePerformance({ strategyId, ...parsed });
+      showToast(`${name} returns updated.`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not read that Excel file.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const reset = async (strategyId: string, name: string) => {
+    setBusyId(strategyId);
+    try {
+      await cms.deletePerformance(strategyId);
+      showToast(`${name} reverted to the built-in returns.`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not reset.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  return (
+    <>
+      <div className="px-5 py-3 bg-accent-50/60 border-b border-accent-100">
+        <p className="text-[11px] text-slate-500 leading-relaxed">
+          Upload one Excel per strategy with columns{' '}
+          <span className="font-bold text-accent-700">Period</span>,{' '}
+          <span className="font-bold text-accent-700">Portfolio %</span> and{' '}
+          <span className="font-bold text-accent-700">Benchmark %</span> — four rows:{' '}
+          <span className="font-bold text-accent-700">1Y, 3Y, 5Y, Since Inception</span> (TWRR, as
+          percentages, e.g. 19.2). The returns tables on the Performance and Strategies pages update
+          automatically; Alpha is computed for you (Portfolio − Benchmark).
+        </p>
+      </div>
+      {STRATEGIES.map((s) => {
+        const row = byId.get(s.id);
+        const busy = busyId === s.id;
+        return (
+          <Row
+            key={s.id}
+            title={s.name}
+            tag={s.tag}
+            date={row ? `Updated ${fmtDate(row.uploadedAt)}` : undefined}
+            actions={
+              <>
+                <label
+                  className={`px-3 py-2 rounded-lg cursor-pointer inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider transition ${
+                    busy
+                      ? 'text-slate-300 pointer-events-none'
+                      : 'text-white bg-accent-500 hover:bg-accent-600'
+                  }`}
+                  title="Upload returns Excel"
+                >
+                  {busy ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="w-3.5 h-3.5" />
+                  )}
+                  <span>{row ? 'Replace' : 'Upload'}</span>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls,.csv"
+                    hidden
+                    disabled={busy}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] ?? null;
+                      e.target.value = '';
+                      handleFile(s.id, s.name, f);
+                    }}
+                  />
+                </label>
+                {row && (
+                  <IconBtn onClick={() => reset(s.id, s.name)} title="Reset to built-in returns" danger>
+                    <RotateCcw className="w-4 h-4" />
+                  </IconBtn>
+                )}
+              </>
+            }
+          >
+            <p className="text-xs text-slate-500 font-light mt-1.5">
+              {row
+                ? row.portfolio
+                    .map((v, i) => `${PERF_PERIODS[i]} ${v}% vs ${row.benchmark[i]}%`)
+                    .join(' · ')
+                : 'Using the built-in returns. Upload an Excel to override them.'}
             </p>
           </Row>
         );

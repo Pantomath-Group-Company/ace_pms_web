@@ -69,6 +69,61 @@ export function parseNavRows(rows: unknown[][]): ParsedNav {
   };
 }
 
+export interface ParsedPerformance {
+  portfolio: number[]; // [1Y, 3Y, 5Y, Since-Inception]
+  benchmark: number[];
+}
+
+// Map a period label in the first column to its slot. Falls back to row order.
+function periodSlot(label: unknown): number {
+  const s = String(label ?? '').toLowerCase();
+  if (/incep|since|si\b|inception/.test(s)) return 3;
+  if (/\b5\b|5\s*y|five/.test(s)) return 2;
+  if (/\b3\b|3\s*y|three/.test(s)) return 1;
+  if (/\b1\b|1\s*y|one/.test(s)) return 0;
+  return -1;
+}
+
+/**
+ * Parse a horizon-returns sheet (Period | Portfolio % | Benchmark %) into two
+ * 4-slot arrays [1Y, 3Y, 5Y, Since-Inception]. Rows are matched by the period
+ * label; if labels aren't recognised, the first four data rows are used in
+ * order. Header rows and blanks are skipped.
+ */
+export function parsePerformanceRows(rows: unknown[][]): ParsedPerformance {
+  const portfolio: (number | null)[] = [null, null, null, null];
+  const benchmark: (number | null)[] = [null, null, null, null];
+  const ordered: { p: number; b: number }[] = [];
+
+  for (const r of rows) {
+    if (!Array.isArray(r) || r.length < 3) continue;
+    const p = Number(r[1]);
+    const b = Number(r[2]);
+    if (!isFinite(p) || !isFinite(b)) continue; // skips the header row
+    const slot = periodSlot(r[0]);
+    if (slot >= 0) {
+      portfolio[slot] = p;
+      benchmark[slot] = b;
+    }
+    ordered.push({ p, b });
+  }
+
+  // Fill any slot not matched by label from the row order.
+  for (let i = 0; i < 4; i++) {
+    if (portfolio[i] === null && ordered[i]) {
+      portfolio[i] = ordered[i].p;
+      benchmark[i] = ordered[i].b;
+    }
+  }
+
+  if (portfolio.some((v) => v === null)) {
+    throw new Error(
+      'Could not read the returns. Expected columns Period, Portfolio %, Benchmark % with four rows: 1Y, 3Y, 5Y and Since Inception.',
+    );
+  }
+  return { portfolio: portfolio as number[], benchmark: benchmark as number[] };
+}
+
 /** "2026-07-31" → "31 Jul 2026". */
 export function formatAsOn(iso: string): string {
   const d = new Date(iso);
