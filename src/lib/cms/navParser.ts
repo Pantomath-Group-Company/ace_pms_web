@@ -7,6 +7,10 @@
 /* ------------------------------------------------------------------ */
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_IDX: Record<string, number> = MON.reduce(
+  (acc, m, i) => ((acc[m.toLowerCase()] = i), acc),
+  {} as Record<string, number>,
+);
 
 export interface ParsedNav {
   since: string; // YYYY-MM-DD
@@ -15,14 +19,51 @@ export interface ParsedNav {
   points: number[][]; // [[strategyRebased, benchmarkRebased], ...]
 }
 
-// Accepts an Excel serial number, a JS Date, or a parseable date string.
+// Parse a cell to a number, tolerating strings with ₹, commas, %, or spaces.
+function toNum(v: unknown): number {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'string') {
+    const n = Number(v.replace(/[₹,%\s]/g, ''));
+    return isFinite(n) ? n : NaN;
+  }
+  return NaN;
+}
+
+// Accepts an Excel serial number, a JS Date, or a date string. Text dates are
+// read day-first (Indian format: DD-MM-YYYY, DD/MM/YYYY, DD-Mon-YYYY), with a
+// final fallback to the engine's own Date parser (handles ISO YYYY-MM-DD).
 function toDate(v: unknown): Date | null {
   if (typeof v === 'number' && isFinite(v)) {
     return new Date(Date.UTC(1899, 11, 30) + Math.round(v) * 86400000);
   }
   if (v instanceof Date && !isNaN(v.getTime())) return v;
   if (typeof v === 'string') {
-    const t = Date.parse(v);
+    const s = v.trim();
+    const yr = (y: string) => (Number(y) < 100 ? Number(y) + 2000 : Number(y));
+
+    // ISO YYYY-MM-DD (unambiguous) first.
+    let m = s.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+    if (m) return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+
+    // DD-MM-YYYY / DD/MM/YYYY / DD.MM.YYYY — day-first, but if the 2nd field is
+    // clearly a day (>12) treat it as US MM-DD instead.
+    m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/);
+    if (m) {
+      let day = Number(m[1]);
+      let mon = Number(m[2]);
+      if (mon > 12 && day <= 12) [day, mon] = [mon, day];
+      if (mon >= 1 && mon <= 12 && day >= 1 && day <= 31) {
+        return new Date(Date.UTC(yr(m[3]), mon - 1, day));
+      }
+    }
+
+    // DD-Mon-YYYY / DD Mon YYYY / Mon-YYYY.
+    m = s.match(/^(\d{1,2})[-\s]([A-Za-z]{3,})[-\s](\d{2,4})$/);
+    if (m && MONTHS_IDX[m[2].slice(0, 3).toLowerCase()] !== undefined) {
+      return new Date(Date.UTC(yr(m[3]), MONTHS_IDX[m[2].slice(0, 3).toLowerCase()], Number(m[1])));
+    }
+
+    const t = Date.parse(s);
     if (!isNaN(t)) return new Date(t);
   }
   return null;
@@ -40,8 +81,8 @@ export function parseNavRows(rows: unknown[][]): ParsedNav {
   for (const r of rows) {
     if (!Array.isArray(r) || r.length < 3) continue;
     const d = toDate(r[0]);
-    const s = Number(r[1]);
-    const b = Number(r[2]);
+    const s = toNum(r[1]);
+    const b = toNum(r[2]);
     if (!d || !isFinite(s) || !isFinite(b) || s <= 0 || b <= 0) continue;
     const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
     const existing = byMonth.get(key);
@@ -97,8 +138,8 @@ export function parsePerformanceRows(rows: unknown[][]): ParsedPerformance {
 
   for (const r of rows) {
     if (!Array.isArray(r) || r.length < 3) continue;
-    const p = Number(r[1]);
-    const b = Number(r[2]);
+    const p = toNum(r[1]);
+    const b = toNum(r[2]);
     if (!isFinite(p) || !isFinite(b)) continue; // skips the header row
     const slot = periodSlot(r[0]);
     if (slot >= 0) {
@@ -121,7 +162,17 @@ export function parsePerformanceRows(rows: unknown[][]): ParsedPerformance {
       'Could not read the returns. Expected columns Period, Portfolio %, Benchmark % with four rows: 1Y, 3Y, 5Y and Since Inception.',
     );
   }
-  return { portfolio: portfolio as number[], benchmark: benchmark as number[] };
+
+  let pf = portfolio as number[];
+  let bm = benchmark as number[];
+  // Excel percentage cells store 10.2% as 0.102. If every value looks like a
+  // fraction (max magnitude below ~1.5), scale back to whole percentages.
+  const maxMag = Math.max(...pf.map(Math.abs), ...bm.map(Math.abs));
+  if (maxMag > 0 && maxMag < 1.5) {
+    pf = pf.map((v) => Math.round(v * 1000) / 10);
+    bm = bm.map((v) => Math.round(v * 1000) / 10);
+  }
+  return { portfolio: pf, benchmark: bm };
 }
 
 /** "2026-07-31" → "31 Jul 2026". */
