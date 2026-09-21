@@ -251,7 +251,7 @@ export interface UpiAccount {
 }
 
 export const UPI_PMS: UpiAccount[] = [
-  { name: 'ACE Ten Trillion', upi: 'asitmehta.pms@validibl' },
-  { name: 'ACE Multi-Asset', upi: 'asitc.pms@validibl' },
-  { name: 'ACE Multicap', upi: 'asit.pms@validibl' },
+  { name: 'ACE Ten Trillion', upi: 'ace.tentrillion.pms@validibl' },
+  { name: 'ACE Multi-Asset', upi: 'ace.multiasset.pms@validibl' },
+  { name: 'ACE Multicap', upi: 'ace.multicap.pms@validibl' },
 ];

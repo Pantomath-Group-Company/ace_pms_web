@@ -47,20 +47,33 @@ export const TeamSection: FC = () => (
             {group.members.map((m) => (
               <div
                 key={m.name}
-                className="flex gap-5 sm:gap-8 items-start py-8 border-t border-slate-200 first:border-t-0 first:pt-0"
+                className="flex flex-col sm:flex-row gap-5 sm:gap-8 sm:items-start py-8 border-t border-slate-200 first:border-t-0 first:pt-0"
               >
-                {/* Photo — always on the left */}
-                <Photo member={m} />
+                {/* Mobile: photo + name/role as a header row. Desktop: just the photo (left column). */}
+                <div className="flex items-center gap-4 sm:block sm:shrink-0">
+                  <Photo member={m} />
+                  <div className="min-w-0 sm:hidden">
+                    <h3 className="text-lg font-extrabold tracking-tight text-slate-900 leading-tight">
+                      {m.name}
+                    </h3>
+                    <p className="text-[11px] font-bold text-accent-600 uppercase tracking-widest font-mono mt-1.5">
+                      {m.role}
+                    </p>
+                  </div>
+                </div>
 
-                {/* Narrative — on the right */}
+                {/* Narrative — full width on mobile, right column on desktop */}
                 <div className="min-w-0 flex-1">
-                  <h3 className="text-lg sm:text-2xl font-extrabold tracking-tight text-slate-900 leading-tight">
-                    {m.name}
-                  </h3>
-                  <p className="text-[11px] font-bold text-accent-600 uppercase tracking-widest font-mono mt-1.5">
-                    {m.role}
-                  </p>
-                  <div className="mt-4 space-y-3 text-sm text-slate-600 font-light leading-relaxed">
+                  {/* Name/role shown here on desktop only (mobile shows them beside the photo above) */}
+                  <div className="hidden sm:block">
+                    <h3 className="text-2xl font-extrabold tracking-tight text-slate-900 leading-tight">
+                      {m.name}
+                    </h3>
+                    <p className="text-[11px] font-bold text-accent-600 uppercase tracking-widest font-mono mt-1.5">
+                      {m.role}
+                    </p>
+                  </div>
+                  <div className="mt-1 sm:mt-4 space-y-3 text-sm text-slate-600 font-light leading-relaxed">
                     {m.bio.map((para, i) => (
                       <p key={i}>{para}</p>
                     ))}

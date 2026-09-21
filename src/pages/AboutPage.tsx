@@ -192,20 +192,23 @@ const GroupScale: FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-14">
           <div
             ref={ref}
-            className="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-100"
+            className="max-w-4xl mx-auto bg-white rounded-2xl border border-slate-200/80 shadow-sm grid grid-cols-3 divide-x divide-slate-100"
           >
           {ABOUT.scale.stats.map((stat) => {
             const Icon = STAT_ICONS[stat.icon] ?? Users;
             return (
-              <div key={stat.label} className="p-6 flex items-center gap-4 justify-center sm:justify-start">
-                <div className="h-11 w-11 bg-ink-50 rounded-xl flex items-center justify-center border border-ink-100 shrink-0">
-                  <Icon className="w-5 h-5 text-ink-700" />
+              <div
+                key={stat.label}
+                className="p-3 sm:p-6 flex flex-col sm:flex-row items-center gap-2 sm:gap-4 text-center sm:text-left justify-center sm:justify-start"
+              >
+                <div className="h-9 w-9 sm:h-11 sm:w-11 bg-ink-50 rounded-xl flex items-center justify-center border border-ink-100 shrink-0">
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-ink-700" />
                 </div>
                 <div>
-                  <div className="text-2xl sm:text-3xl font-extrabold text-ink-800 tracking-tight tabular-nums leading-none">
+                  <div className="text-lg sm:text-3xl font-extrabold text-ink-800 tracking-tight tabular-nums leading-none">
                     <CountUp value={stat.value} active={inView} suffix={stat.suffix} />
                   </div>
-                  <div className="text-[10px] text-slate-500 font-mono uppercase tracking-wide mt-1">
+                  <div className="text-[9px] sm:text-[10px] text-slate-500 font-mono uppercase tracking-wide mt-1">
                     {stat.label}
                   </div>
                 </div>
