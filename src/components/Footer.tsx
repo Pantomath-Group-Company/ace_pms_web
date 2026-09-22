@@ -162,9 +162,14 @@ export const Footer = () => {
               >
                 SEBI Master Circular
               </a>
-              <Link to="/contact" className="hover:text-ink-100 transition">
+              <a
+                href={REGULATORY.links.investorGrievance}
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-ink-100 transition"
+              >
                 Investor Grievance
-              </Link>
+              </a>
             </div>
           </div>
         </div>

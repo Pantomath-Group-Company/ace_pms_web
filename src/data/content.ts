@@ -21,7 +21,8 @@ export const REGULATORY = {
   footnote:
     'Disclaimer: Data as on 31 July 2026. Returns ≤1 year are absolute and >1 year are annualised TWRR, based on aggregate portfolio returns post fees and expenses; individual portfolio returns may vary. Past performance is not indicative of future results. Investments in securities are subject to market risks; read all related documents carefully before investing. PMS is intended solely for HNI/UHNI investors. Rankings are based on PMS Bazaar monthly reports and internal classification criteria, excluding strategies with a vintage of less than 3 years and AMCs with aggregate AUM below ₹200 crore.',
   links: {
-    investorCharter: 'https://www.investmentz.com/investor-charters',
+    investorCharter: '/docs/investor-charter.pdf',
+    investorGrievance: '/docs/investor-grievance.pdf',
     scores: 'https://scores.sebi.gov.in/',
     smartOdr: 'https://smartodr.in/',
     sebiOdrCircular:
