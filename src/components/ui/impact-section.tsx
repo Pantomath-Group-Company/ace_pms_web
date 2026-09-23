@@ -120,9 +120,9 @@ const impactCards: ImpactCard[] = [
   },
   {
     id: 'alpha',
-    metric: '7%*',
-    title: 'Annualised alpha',
-    description: 'Delivered 7% annualised alpha over benchmark BSE 500 TRI across strategies.',
+    metric: '24%',
+    title: 'Annualized return',
+    description: 'Delivered ~24% annualized return across our strategies.',
     redirect: '/performance',
     cta: 'Learn more',
     Illustration: IllustrationChart,

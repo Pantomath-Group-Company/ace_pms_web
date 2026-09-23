@@ -49,11 +49,9 @@ export const HERO = {
 export const HERO_THEMES = [
   { icon: 'Landmark', label: 'Financialisation' },
   { icon: 'Factory', label: 'Manufacturing' },
-  { icon: 'Cloud', label: 'Cloud & AI Infrastructure' },
+  { icon: 'Cpu', label: 'Cloud & AI Infrastructure' },
   { icon: 'ShoppingCart', label: 'Premium Consumption' },
-  { icon: 'Cpu', label: 'Digitisation' },
   { icon: 'Leaf', label: 'Energy Transition' },
-  { icon: 'Shield', label: 'Defence' },
   { icon: 'TrendingUp', label: 'Services' },
 ];
 
@@ -71,10 +69,10 @@ export const CREDIBILITY_BAR = [
     text: 'Ranked PMS schemes in 3-yr & 5-yr timeframes by PMS Bazaar*',
   },
   {
-    label: 'ALPHA DELIVERED',
-    value: '7',
+    label: 'ANNUALISED RETURN',
+    value: '24',
     suffix: '%*',
-    text: 'Annualised alpha over benchmark BSE 500 TRI',
+    text: 'Annualised return across our strategies',
   },
   {
     label: 'PHILOSOPHY',
@@ -269,6 +267,7 @@ export const STRATEGIES: StrategyContent[] = [
       { k: 'Style', v: 'GARP' },
       { k: 'Risk', v: 'Moderate' },
       { k: 'Horizon', v: '3–5 yrs' },
+      { k: 'Past payout', v: '6% (Annually)' },
       { k: 'Minimum', v: '₹1 crore' },
       { k: 'Fixed Fee', v: '2.5% of AUM' },
       { k: 'Hybrid Fee', v: '1.5% of AUM + 15% Performance Fee | 10% Hurdle | High Watermark' },

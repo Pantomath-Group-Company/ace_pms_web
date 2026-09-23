@@ -1,24 +1,13 @@
 import type { FC } from 'react';
-import {
-  Landmark,
-  Factory,
-  Cloud,
-  ShoppingCart,
-  Cpu,
-  Leaf,
-  Shield,
-  TrendingUp,
-} from 'lucide-react';
+import { Landmark, Factory, ShoppingCart, Cpu, Leaf, TrendingUp } from 'lucide-react';
 import { HERO_THEMES } from '../data/content';
 
 const THEME_ICONS: Record<string, FC<{ className?: string; strokeWidth?: number }>> = {
   Landmark,
   Factory,
-  Cloud,
   ShoppingCart,
   Cpu,
   Leaf,
-  Shield,
   TrendingUp,
 };
 
@@ -38,12 +27,12 @@ export const StructuralThemesSection: FC = () => (
         The Engines of India's Structural Transformation
       </h2>
       <p className="text-center text-slate-500 text-xs sm:text-sm font-light max-w-2xl mx-auto mt-3 leading-relaxed">
-        We invest in businesses positioned to benefit from the eight forces reshaping India's
+        We invest in businesses positioned to benefit from the powerful forces reshaping India's
         economy on the road to <span className="text-accent-600 font-semibold">$10 trillion</span>.
       </p>
 
       {/* Theme cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4 mt-10">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mt-10">
         {HERO_THEMES.map((t) => {
           const Icon = THEME_ICONS[t.icon] ?? Landmark;
           return (
