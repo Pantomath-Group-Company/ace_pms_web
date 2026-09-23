@@ -120,7 +120,7 @@ const impactCards: ImpactCard[] = [
   },
   {
     id: 'alpha',
-    metric: '24%',
+    metric: '24%*',
     title: 'Annualized return',
     description: 'Delivered ~24% annualized return across our strategies.',
     redirect: '/performance',

@@ -52,10 +52,12 @@ const HeroContent: FC = () => (
 
 export const HomeHero: FC = () => (
   <section className="relative overflow-hidden border-b border-slate-100 bg-[#FAFAFA] font-sans">
-    {/* Desktop — the cityscape is a real full-width image, so it scales with the
-        viewport and the whole composition (incl. the right-side graphic) stays
-        visible at every width. A left scrim keeps the overlaid text legible. */}
-    <div className="relative hidden lg:block">
+    {/* Desktop — the cityscape is a real image (height follows width) capped at a
+        max width and centred, so it fills the screen at normal desktop sizes but
+        shrinks (rather than staying full-bleed) once the viewport grows past the
+        cap — e.g. on ultra-wide screens or when the browser is zoomed out. A left
+        scrim keeps the overlaid text legible. */}
+    <div className="relative hidden md:block max-w-[1920px] mx-auto">
       <img
         src={CITYSCAPE_SRC}
         alt=""
@@ -74,7 +76,7 @@ export const HomeHero: FC = () => (
     </div>
 
     {/* Mobile — headline, then image, then the subline, then the CTAs */}
-    <div className="lg:hidden">
+    <div className="md:hidden">
       <div className="px-4 sm:px-6 pt-14">
         <Headline />
       </div>
