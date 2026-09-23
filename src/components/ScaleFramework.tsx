@@ -36,7 +36,7 @@ const SCALE: ScaleFilter[] = [
   },
   {
     letter: 'A',
-    title: 'Advantage / Leadership',
+    title: 'Advantage',
     node: 'Advantage',
     sub: 'Strong Moats · Differentiated business models',
     desc: 'Own leadership businesses with sustainable competitive advantages, differentiated capabilities or business models that enable them to gain market share.',

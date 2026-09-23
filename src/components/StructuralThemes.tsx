@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { Landmark, Factory, ShoppingCart, Cpu, Leaf, TrendingUp } from 'lucide-react';
+import { Landmark, Factory, ShoppingCart, Cpu, Leaf, Plane } from 'lucide-react';
 import { HERO_THEMES } from '../data/content';
 
 const THEME_ICONS: Record<string, FC<{ className?: string; strokeWidth?: number }>> = {
@@ -8,7 +8,7 @@ const THEME_ICONS: Record<string, FC<{ className?: string; strokeWidth?: number 
   ShoppingCart,
   Cpu,
   Leaf,
-  TrendingUp,
+  Plane,
 };
 
 export const StructuralThemesSection: FC = () => (
