@@ -49,7 +49,7 @@ export const HERO = {
 export const HERO_THEMES = [
   { icon: 'Landmark', label: 'Financialisation' },
   { icon: 'Factory', label: 'Manufacturing' },
-  { icon: 'Cpu', label: 'Cloud & AI Infrastructure' },
+  { icon: 'Cpu', label: 'Digitization, Cloud & AI Infrastructure' },
   { icon: 'ShoppingCart', label: 'Premium Consumption' },
   { icon: 'Leaf', label: 'Energy Transition' },
   { icon: 'TrendingUp', label: 'Services' },

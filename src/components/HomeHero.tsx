@@ -52,20 +52,25 @@ const HeroContent: FC = () => (
 
 export const HomeHero: FC = () => (
   <section className="relative overflow-hidden border-b border-slate-100 bg-[#FAFAFA] font-sans">
-    {/* Desktop — full-bleed cityscape with a left scrim for text legibility */}
-    <div
-      className="hidden lg:block absolute inset-0 bg-cover bg-top"
-      style={{ backgroundImage: `url(${CITYSCAPE_SRC})` }}
-      aria-hidden="true"
-    />
-    <div
-      className="hidden lg:block absolute inset-0 bg-gradient-to-r from-[#FAFAFA] from-15% via-[#FAFAFA]/85 via-45% to-transparent"
-      aria-hidden="true"
-    />
-
-    {/* Desktop content */}
-    <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 lg:min-h-[calc(100vh-5rem)] hidden lg:flex items-center">
-      <HeroContent />
+    {/* Desktop — the cityscape is a real full-width image, so it scales with the
+        viewport and the whole composition (incl. the right-side graphic) stays
+        visible at every width. A left scrim keeps the overlaid text legible. */}
+    <div className="relative hidden lg:block">
+      <img
+        src={CITYSCAPE_SRC}
+        alt=""
+        className="block w-full h-auto select-none"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-0 bg-gradient-to-r from-[#FAFAFA] from-15% via-[#FAFAFA]/85 via-45% to-transparent"
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 z-10 flex items-center">
+        <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <HeroContent />
+        </div>
+      </div>
     </div>
 
     {/* Mobile — headline, then image, then the subline, then the CTAs */}
