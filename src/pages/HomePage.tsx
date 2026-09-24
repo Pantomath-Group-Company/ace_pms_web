@@ -14,6 +14,7 @@ import { ScaleFramework } from '../components/ScaleFramework';
 import { SchedulerCta } from '../components/SchedulerCta';
 import { StrategyShowcase } from '../components/StrategyShowcase';
 import { GrowthShowcase } from '../components/GrowthShowcase';
+import { RankingsTable } from '../components/RankingsTable';
 import { SectionHeading } from '../components/shared';
 
 export default function HomePage() {
@@ -61,6 +62,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ============ PMS Bazaar rankings — premium showcase, high on the page ============ */}
+      <RankingsTable />
 
       {/* ============ Growth of ₹1 crore — right after the 'Read our story' CTA ============ */}
       <GrowthShowcase />

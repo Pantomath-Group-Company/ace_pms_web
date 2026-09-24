@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CheckCircle2, Download } from 'lucide-react';
+import { CheckCircle2, Download, Trophy } from 'lucide-react';
 import { STRATEGIES } from '../data/content';
 import strategyNav from '../data/strategyNav.json';
 import { useTopMonthlyStrategyId } from '../lib/topPerformer';
@@ -214,16 +214,26 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
           <div className="space-y-2.5">
             {active.points.map((point) => (
               <div
-                key={point}
+                key={point.title}
                 className="flex items-start gap-2.5 p-3 bg-white rounded-xl border border-slate-100 shadow-sm"
               >
                 <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span className="text-[11px] sm:text-xs font-medium text-slate-700 leading-relaxed">
-                  {point}
+                <span className="text-[11px] sm:text-xs leading-relaxed">
+                  <span className="font-bold text-slate-900">{point.title}</span>
+                  <span className="text-slate-600"> — {point.body}</span>
                 </span>
               </div>
             ))}
           </div>
+
+          {active.trackRecord && (
+            <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-accent-50 border border-accent-100">
+              <Trophy className="w-4 h-4 text-accent-600 shrink-0 mt-0.5" />
+              <span className="text-[11px] sm:text-xs font-semibold text-ink-800 leading-relaxed">
+                {active.trackRecord}
+              </span>
+            </div>
+          )}
 
           {/* Key facts grid */}
           <div className="grid grid-cols-2 gap-4 border-t border-slate-200 pt-5 text-xs">
@@ -400,7 +410,12 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
 
             {/* Compound value cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
-              <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+              <div className="relative bg-slate-50 rounded-xl p-4 border border-slate-100">
+                {active.payoutNote && (
+                  <span className="absolute top-3 right-3 text-[9px] font-mono font-semibold text-accent-700 text-right">
+                    {active.payoutNote}
+                  </span>
+                )}
                 <span className="text-[9px] text-accent-700 font-mono tracking-wider font-bold block uppercase">
                   {stratLabel}
                 </span>

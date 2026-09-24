@@ -49,7 +49,7 @@ export const HERO = {
 export const HERO_THEMES = [
   { icon: 'Landmark', label: 'Financialisation' },
   { icon: 'Factory', label: 'Manufacturing' },
-  { icon: 'Cpu', label: 'Digitization, Cloud & AI Infrastructure' },
+  { icon: 'Cpu', label: 'Digitalisation, Cloud & AI Infrastructure' },
   { icon: 'ShoppingCart', label: 'Premium Consumption' },
   { icon: 'Leaf', label: 'Energy Transition' },
   { icon: 'Plane', label: 'Defense and Aerospace' },
@@ -156,8 +156,12 @@ export interface StrategyContent {
   tag: string;
   name: string;
   tagline: string;
-  // Positioning broken into point statements — shown as check-cards.
-  points: string[];
+  // Positioning points — a bold title + short body, shown as check-cards.
+  points: { title: string; body: string }[];
+  /** Track-record banner shown beneath the positioning points. */
+  trackRecord?: string;
+  /** Optional note shown in the strategy's value card (e.g. post-payout). */
+  payoutNote?: string;
   keyFacts: { k: string; v: string }[];
   performanceNote: string;
   homeCard: { description: string; metric: string; metricLabel: string };
@@ -181,10 +185,12 @@ export const STRATEGIES: StrategyContent[] = [
     name: 'ACE Multicap',
     tagline: 'Built for balanced performance',
     points: [
-      'Our flagship. Large-cap stability blended with mid- and small-cap growth for an optimal balance of consistency and compounding.',
-      'Enables quick repositioning as valuations, liquidity, macro conditions and sector leadership evolve.',
-      'Track record of 7%+ alpha since inception, and ranked Top Five PMS scheme in 3 & 5-yr by PMS Bazaar.*',
+      { title: 'Dynamic Repositioning', body: 'As valuations, liquidity, macro conditions and sector leadership evolve.' },
+      { title: 'Beta Diversification', body: 'Across 10+ sectors and 5+ themes to balance concentration risk.' },
+      { title: 'Focused Portfolio', body: 'Of 18–25 high-quality businesses, agnostic to benchmark, market cap and sector.' },
     ],
+    trackRecord:
+      'Proven track record of 24% CAGR over 5 years (post fees and charges), and ranked a Top-Ten PMS scheme over 5-year performance by PMS Bazaar (31 July 2026 report).',
     keyFacts: [
       { k: 'Inception', v: '23 Aug 2018' },
       { k: 'Benchmark', v: 'BSE 500 TRI' },
@@ -219,10 +225,12 @@ export const STRATEGIES: StrategyContent[] = [
     name: 'ACE Ten Trillion Opportunities',
     tagline: "Built to ride India's ascent to a $10-trillion economy",
     points: [
-      "A small–mid (SMID) strategy built to capture India's rise to a $10-trillion economy.",
-      "Capturing India's structural shift from services-led growth to financialisation, manufacturing and digitisation.",
-      'Track record of 7%+ alpha since inception, and ranked Top Ten in SMID schemes in 3 & 5-yr by PMS Bazaar.*',
+      { title: "India's Next-Gen Growth Leaders", body: "Focused on mid- and small-cap businesses with the potential to scale disproportionately as India's economy expands toward US$10 trillion." },
+      { title: 'Six Structural Themes, One Focused Portfolio', body: "Structural engines of India's next decade: Financialisation, Manufacturing, Digitalisation, Cloud & AI, Premium Consumption, Defence & Aerospace and Energy Transition." },
+      { title: "Finding Tomorrow's Leaders, Early", body: 'Seeking scalable, future-ready businesses with long growth runways, improving competitive positioning and management teams that demonstrate consistent execution.' },
     ],
+    trackRecord:
+      'Proven track record of 24% CAGR over 5 years (post fees and charges), and ranked a Top-Ten PMS scheme over 3- and 5-year performance by PMS Bazaar (31 July 2026 report).',
     keyFacts: [
       { k: 'Inception', v: '29 Dec 2017' },
       { k: 'Benchmark', v: 'BSE 500 TRI' },
@@ -257,17 +265,19 @@ export const STRATEGIES: StrategyContent[] = [
     name: 'ACE Multi-Asset',
     tagline: 'Asset-class diversification with an optional 0.5% monthly payout',
     points: [
-      'Our Multi-Asset strategy invests across equity, fixed income, gold, silver and listed alternatives to participate across every market cycle.',
-      'Dynamic asset allocation across uncorrelated asset classes, driven by valuations and market cycles, aims to reduce volatility while capturing opportunities.',
-      'A proven track record of 5%+ alpha since inception, complemented by the No. 1 Multi-Asset PMS ranking across both 3-year and 5-year periods by PMS Bazaar.',
+      { title: 'One Strategy, Multiple Sources of Return', body: 'Diversified exposure across equity, debt, gold, REITs, InvITs and other asset classes — reducing dependence on any single market driver.' },
+      { title: 'Navigate Cycles, Not Predict Markets', body: 'Adapts to changing valuations, yields, liquidity and market conditions — seeking opportunities wherever risk-reward is attractive.' },
+      { title: 'Built for Smoother Compounding', body: 'Designed to participate in market upside while using diversification and allocation discipline to moderate portfolio volatility across cycles.' },
     ],
+    trackRecord:
+      'Proven track record of 20% CAGR over 5 years post payout (6% p.a.), fees and charges — the No. 1 Multi-Asset scheme over 3- and 5-year periods by PMS Bazaar (31 July 2026 report).',
+    payoutNote: 'Post payout (6% p.a.)',
     keyFacts: [
       { k: 'Inception', v: '4 Oct 2018' },
       { k: 'Benchmark', v: 'Nifty Multi-Asset' },
       { k: 'Style', v: 'GARP' },
       { k: 'Risk', v: 'Moderate' },
       { k: 'Horizon', v: '3–5 yrs' },
-      { k: 'Returns post payout', v: '6% (Annually)' },
       { k: 'Minimum', v: '₹1 crore' },
       { k: 'Fixed Fee', v: '2.5% of AUM' },
       { k: 'Hybrid Fee', v: '1.5% of AUM + 15% Performance Fee | 10% Hurdle | High Watermark' },
@@ -585,6 +595,19 @@ export const PHILOSOPHY_PAGE = {
 };
 
 // ---------- Performance ----------
+// PMS Bazaar category rankings (deck slide 14) — shown on the home page.
+export const PMS_RANKINGS = {
+  eyebrow: 'PMS BAZAAR RANKINGS',
+  title: 'Recognition is never the goal. It is the outcome.',
+  lead: 'Our PMS strategies have been featured across multiple categories in the latest PMS Bazaar performance rankings.',
+  rows: [
+    { strategy: 'ACE Multi-Asset', category: 'Multi-Asset', period: '3 & 5 Years', rank: 'Rank 1' },
+    { strategy: 'ACE Ten Trillion Opportunities', category: 'Small & Mid Cap', period: '5 Years', rank: 'Rank 6' },
+    { strategy: 'ACE Ten Trillion Opportunities', category: 'Small & Mid Cap', period: '3 Years', rank: 'Rank 8' },
+    { strategy: 'ACE Multicap', category: 'Multicap', period: '5 Years', rank: 'Rank 10' },
+  ],
+};
+
 export const PERFORMANCE = {
   intro: {
     title: 'Performance, in full',
