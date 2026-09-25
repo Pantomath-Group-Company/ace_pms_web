@@ -1,0 +1,36 @@
+name: Deploy to Company Vercel
+
+# Auto-deploy the company Vercel project on every push to main.
+# The company project imports this repo but its Vercel Git webhook doesn't fire
+# reliably (the repo is also connected to another Vercel account), so we trigger
+# its build explicitly via a Vercel Deploy Hook.
+#
+# Setup (one time):
+#   1. Company Vercel -> this project -> Settings -> Git -> Deploy Hooks
+#      -> create a hook for branch `main`, copy the URL.
+#   2. GitHub repo -> Settings -> Secrets and variables -> Actions
+#      -> New repository secret named VERCEL_DEPLOY_HOOK_URL, paste the URL.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  trigger-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger company Vercel deploy hook
+        run: |
+          if [ -z "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}" ]; then
+            echo "::error::VERCEL_DEPLOY_HOOK_URL secret is not set. Add it in repo Settings -> Secrets and variables -> Actions."
+            exit 1
+          fi
+          echo "Triggering company Vercel deploy hook..."
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.VERCEL_DEPLOY_HOOK_URL }}")
+          echo "Deploy hook responded with HTTP $http_code"
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "::error::Deploy hook failed (HTTP $http_code)."
+            exit 1
+          fi
+          echo "Company Vercel deployment triggered successfully."
