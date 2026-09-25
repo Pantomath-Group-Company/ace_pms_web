@@ -27,37 +27,55 @@ export const RankingsTable: FC = () => (
         <p className="text-slate-500 text-sm font-light leading-relaxed">{PMS_RANKINGS.lead}</p>
       </div>
 
-      {/* Table card */}
-      <div className="rounded-2xl border border-slate-200/70 bg-white shadow-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[560px]">
-            <thead>
-              <tr className="bg-gradient-to-r from-ink-900 to-accent-600 text-white text-[11px] uppercase tracking-[0.14em] font-mono">
-                <th className="py-4 px-6 font-semibold">PMS Strategy</th>
-                <th className="py-4 px-6 font-semibold">Category</th>
-                <th className="py-4 px-6 font-semibold">Period</th>
-                <th className="py-4 px-6 font-semibold text-right">Rank</th>
+      {/* Desktop / tablet — full table */}
+      <div className="hidden sm:block rounded-2xl border border-slate-200/70 bg-white shadow-xl overflow-hidden">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-gradient-to-r from-ink-900 to-accent-600 text-white text-[11px] uppercase tracking-[0.14em] font-mono">
+              <th className="py-4 px-6 font-semibold">PMS Strategy</th>
+              <th className="py-4 px-6 font-semibold">Category</th>
+              <th className="py-4 px-6 font-semibold">Period</th>
+              <th className="py-4 px-6 font-semibold text-right">Rank</th>
+            </tr>
+          </thead>
+          <tbody>
+            {PMS_RANKINGS.rows.map((r, i) => (
+              <tr
+                key={`${r.strategy}-${r.period}`}
+                className={`border-t border-slate-100 ${i % 2 ? 'bg-[#FAF9FE]' : 'bg-white'}`}
+              >
+                <td className="py-5 px-6 font-bold text-ink-900">{r.strategy}</td>
+                <td className="py-5 px-6 text-sm text-slate-600">{r.category}</td>
+                <td className="py-5 px-6 text-sm text-slate-600">{r.period}</td>
+                <td className="py-5 px-6 text-right">
+                  <span className="inline-flex items-center justify-center rounded-full bg-accent-50 border border-accent-100 px-4 py-1.5 text-sm font-extrabold text-accent-700 tracking-tight">
+                    {r.rank}
+                  </span>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {PMS_RANKINGS.rows.map((r, i) => (
-                <tr
-                  key={`${r.strategy}-${r.period}`}
-                  className={`border-t border-slate-100 ${i % 2 ? 'bg-[#FAF9FE]' : 'bg-white'}`}
-                >
-                  <td className="py-5 px-6 font-bold text-ink-900">{r.strategy}</td>
-                  <td className="py-5 px-6 text-sm text-slate-600">{r.category}</td>
-                  <td className="py-5 px-6 text-sm text-slate-600">{r.period}</td>
-                  <td className="py-5 px-6 text-right">
-                    <span className="inline-flex items-center justify-center rounded-full bg-accent-50 border border-accent-100 px-4 py-1.5 text-sm font-extrabold text-accent-700 tracking-tight">
-                      {r.rank}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile — stacked cards */}
+      <div className="sm:hidden space-y-3">
+        {PMS_RANKINGS.rows.map((r) => (
+          <div
+            key={`${r.strategy}-${r.period}`}
+            className="rounded-2xl border border-slate-200/70 bg-white shadow-sm p-4 flex items-start justify-between gap-3"
+          >
+            <div className="min-w-0">
+              <p className="font-bold text-ink-900 text-sm leading-snug">{r.strategy}</p>
+              <p className="text-[11px] text-slate-500 mt-1">
+                {r.category} · {r.period}
+              </p>
+            </div>
+            <span className="shrink-0 inline-flex items-center rounded-full bg-accent-50 border border-accent-100 px-3.5 py-1.5 text-xs font-extrabold text-accent-700">
+              {r.rank}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   </section>
