@@ -1,0 +1,100 @@
+/* ==========================================================================
+   Accessibility widget — site transformations.
+   Visual filters (invert/contrast/saturation) are applied inline on #root so
+   the widget itself (portaled to <body>, outside #root) is never affected.
+   Text/structure tweaks are applied via classes / data-attributes on <html>.
+   ========================================================================== */
+
+/* ---- Readable + dyslexia-friendly fonts ---- */
+html.a11y-readable-font #root,
+html.a11y-readable-font #root * {
+  font-family: Verdana, Tahoma, Arial, sans-serif !important;
+}
+html.a11y-dyslexia #root,
+html.a11y-dyslexia #root * {
+  font-family: "Comic Sans MS", "Segoe Print", Verdana, sans-serif !important;
+  letter-spacing: 0.04em !important;
+  word-spacing: 0.12em !important;
+}
+
+/* ---- Letter spacing ---- */
+html[data-a11y-spacing="1"] #root * { letter-spacing: 0.06em !important; }
+html[data-a11y-spacing="2"] #root * { letter-spacing: 0.12em !important; }
+html[data-a11y-spacing="3"] #root * { letter-spacing: 0.2em !important; }
+
+/* ---- Line height ---- */
+html[data-a11y-lineheight="1"] #root *  { line-height: 1.6 !important; }
+html[data-a11y-lineheight="2"] #root *  { line-height: 2 !important; }
+html[data-a11y-lineheight="3"] #root *  { line-height: 2.6 !important; }
+
+/* ---- Text alignment ---- */
+html[data-a11y-align="left"]   #root :is(p,li,h1,h2,h3,h4,h5,h6,span,a) { text-align: left !important; }
+html[data-a11y-align="center"] #root :is(p,li,h1,h2,h3,h4,h5,h6,span,a) { text-align: center !important; }
+html[data-a11y-align="right"]  #root :is(p,li,h1,h2,h3,h4,h5,h6,span,a) { text-align: right !important; }
+
+/* ---- Highlight links ---- */
+html.a11y-highlight-links #root a {
+  outline: 2px dashed #C94F12 !important;
+  outline-offset: 2px !important;
+  background-color: #FDF0E8 !important;
+  color: #A8400E !important;
+  text-decoration: underline !important;
+}
+
+/* ---- Highlight titles ---- */
+html.a11y-highlight-titles #root :is(h1, h2, h3, h4, h5, h6) {
+  outline: 2px dashed #2C1F58 !important;
+  outline-offset: 2px !important;
+  background-color: #E4DFF1 !important;
+}
+
+/* ---- Highlight focus ---- */
+html.a11y-highlight-focus #root *:focus,
+html.a11y-highlight-focus #root *:focus-visible {
+  outline: 3px solid #E4611F !important;
+  outline-offset: 2px !important;
+}
+
+/* ---- Pause animations ---- */
+html.a11y-stop-animations #root *,
+html.a11y-stop-animations #root *::before,
+html.a11y-stop-animations #root *::after {
+  animation-duration: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+/* ---- Hide images ---- */
+html.a11y-hide-images #root :is(img, video, picture) {
+  visibility: hidden !important;
+}
+
+/* ---- Big cursor ---- */
+html.a11y-big-cursor,
+html.a11y-big-cursor * {
+  cursor:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24'%3E%3Cpath fill='%23000' stroke='%23fff' stroke-width='1.3' d='M4 2 L4 21 L9.2 15.8 L12.6 23 L15.6 21.6 L12.2 14.6 L19 14.6 Z'/%3E%3C/svg%3E") 3 2,
+    auto !important;
+}
+
+/* ---- Media re-inversion (so photos stay normal when colours are inverted) ---- */
+#root.a11y-mediafix-invert :is(img, video, iframe, [style*="background-image"]) {
+  filter: invert(1) !important;
+}
+#root.a11y-mediafix-dark :is(img, video, iframe, [style*="background-image"]) {
+  filter: invert(1) hue-rotate(180deg) !important;
+}
+
+/* ---- Custom colour adjustment ---- */
+html[data-a11y-textcolor] #root :is(p, span, li, a, td, th, label, strong, em, small, button, input, textarea) {
+  color: var(--a11y-textcolor) !important;
+}
+html[data-a11y-titlecolor] #root :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--a11y-titlecolor) !important;
+}
+html[data-a11y-bgcolor] #root,
+html[data-a11y-bgcolor] #root :is(section, header, footer, article, aside, main, div) {
+  background-color: var(--a11y-bgcolor) !important;
+  background-image: none !important;
+}

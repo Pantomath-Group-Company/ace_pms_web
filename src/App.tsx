@@ -3,6 +3,7 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { CheckCircle2 } from 'lucide-react';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { AccessibilityMenu } from './components/accessibility/AccessibilityMenu';
 import { ToastContext } from './components/toast';
 import HomePage from './pages/HomePage';
 import AboutPage from './pages/AboutPage';
@@ -83,6 +84,8 @@ export default function App() {
         </Routes>
 
         {!chromeless && <Footer />}
+
+        <AccessibilityMenu />
       </div>
     </ToastContext.Provider>
   );
