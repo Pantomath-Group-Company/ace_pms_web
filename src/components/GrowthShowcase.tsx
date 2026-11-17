@@ -3,11 +3,15 @@ import { ArrowRight } from 'lucide-react';
 import { PERFORMANCE } from '../data/content';
 import { CountUp, prefersReducedMotion, useInView } from './motion';
 import { useAsOnDate, applyAsOn } from '../lib/asOn';
+import { useResolvedGrowth, type GrowthEntry } from '../lib/performance';
 
-function GrowthCard({ g }: { g: (typeof PERFORMANCE.growth)[number] }) {
+function GrowthCard({ g }: { g: GrowthEntry }) {
   const { ref, inView } = useInView<HTMLDivElement>();
   const reduce = prefersReducedMotion();
-  const benchPct = Math.round((g.benchmarkValue / g.terminalValue) * 100);
+  // Longer bar = 100%; the other is scaled against it (benchmark can lead).
+  const top = Math.max(g.terminalValue, g.benchmarkValue) || 1;
+  const stratPct = Math.round((g.terminalValue / top) * 100);
+  const benchPct = Math.round((g.benchmarkValue / top) * 100);
   const revealed = reduce || inView;
 
   return (
@@ -35,7 +39,7 @@ function GrowthCard({ g }: { g: (typeof PERFORMANCE.growth)[number] }) {
           <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-accent-500 rounded-full transition-[width] duration-1000 ease-out"
-              style={{ width: revealed ? '100%' : '0%' }}
+              style={{ width: revealed ? `${stratPct}%` : '0%' }}
             />
           </div>
         </div>
@@ -63,6 +67,7 @@ function GrowthCard({ g }: { g: (typeof PERFORMANCE.growth)[number] }) {
 // "Growth of ₹1 crore" — the emotional centrepiece: proof right after philosophy.
 export const GrowthShowcase = () => {
   const asOn = useAsOnDate();
+  const growth = useResolvedGrowth();
   return (
   <section id="growth" className="py-24 bg-[#FAFAFA] border-b border-slate-200/60 font-sans">
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -76,7 +81,7 @@ export const GrowthShowcase = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8">
-        {PERFORMANCE.growth.map((g) => (
+        {growth.map((g) => (
           <GrowthCard key={g.strategy} g={g} />
         ))}
       </div>

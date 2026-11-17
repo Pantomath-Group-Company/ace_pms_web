@@ -2,6 +2,7 @@ import { useState, type FC } from 'react';
 import { Link } from 'react-router-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
+import { useFiveYearReturnRange } from '../../lib/performance';
 
 /* ------------------------------------------------------------------ */
 /* Monoline vector illustrations — 2px stroke, no fill, currentColor.  */
@@ -120,9 +121,10 @@ const impactCards: ImpactCard[] = [
   },
   {
     id: 'alpha',
-    metric: '24%*',
+    // metric/description are replaced at render with the live 5Y range.
+    metric: '19.9–24.8%*',
     title: '5-Yr annualized return',
-    description: 'A ~24% annualized return across our strategies over the last 5 years.',
+    description: 'Annualized returns of 19.9% to 24.8% across our strategies over the last 5 years.',
     redirect: '/performance',
     cta: 'Learn more',
     Illustration: IllustrationChart,
@@ -160,6 +162,19 @@ const impactCards: ImpactCard[] = [
 export const WhyAcePmsSection = () => {
   const [openCard, setOpenCard] = useState(0);
   const reduce = useReducedMotion();
+  const fiveYr = useFiveYearReturnRange();
+  const cards = impactCards.map((card) =>
+    card.id === 'alpha' && fiveYr
+      ? {
+          ...card,
+          metric: `${fiveYr.label}%*`,
+          description:
+            fiveYr.min === fiveYr.max
+              ? `A ${fiveYr.label}% annualized return across our strategies over the last 5 years.`
+              : `Annualized returns of ${fiveYr.label.replace('–', '% to ')}% across our strategies over the last 5 years.`,
+        }
+      : card,
+  );
 
   const spring = reduce
     ? { duration: 0 }
@@ -183,7 +198,7 @@ export const WhyAcePmsSection = () => {
 
         {/* Expanding cards */}
         <div className="flex flex-col lg:flex-row gap-3 lg:h-[360px]">
-          {impactCards.map((card, i) => {
+          {cards.map((card, i) => {
             const isOpen = openCard === i;
             return (
               <motion.div

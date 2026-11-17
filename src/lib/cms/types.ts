@@ -17,11 +17,30 @@ export type DocCategory = (typeof DOC_CATEGORIES)[number];
 export const ARTICLE_KINDS = ['Article', 'Blog', 'Media'] as const;
 export type ArticleKind = (typeof ARTICLE_KINDS)[number];
 
+/**
+ * Console roles.
+ *  - system_admin: everything an admin can do, plus add/remove team users,
+ *    change roles and read the audit log.
+ *  - admin: manages site content only.
+ * Accounts with no role recorded are treated as 'admin'.
+ */
+export const TEAM_ROLES = ['system_admin', 'admin'] as const;
+export type TeamRole = (typeof TEAM_ROLES)[number];
+
+export const ROLE_LABELS: Record<TeamRole, string> = {
+  system_admin: 'System Admin',
+  admin: 'Admin',
+};
+
+export const normalizeRole = (r: unknown): TeamRole =>
+  r === 'system_admin' ? 'system_admin' : 'admin';
+
 /** A signed-in internal PMS team member. */
 export interface CmsUser {
   id: string;
   email: string;
   name: string;
+  role: TeamRole;
 }
 
 export interface CmsSession {
@@ -185,12 +204,72 @@ export interface CallbackRecord extends CallbackInput {
   createdAt: string;
 }
 
-/** A team member account (all are Super Admins). */
+/** A team member account (Access screen). */
 export interface TeamUser {
   id: string;
   email: string;
+  name?: string;
+  role: TeamRole;
   createdAt?: string;
   lastSignInAt?: string;
+}
+
+/** System Admin: provision a new team account. */
+export interface NewTeamUserInput {
+  email: string;
+  password: string;
+  name?: string;
+  role: TeamRole;
+}
+
+/**
+ * Per-strategy editable copy (Console → Track Record). Overrides the
+ * `trackRecord` banner hard-coded in content.ts for that strategy; an empty
+ * string hides the banner. Deleting the row reverts to the built-in text.
+ */
+export interface StrategyNote {
+  strategyId: string;
+  trackRecord: string;
+  updatedBy: string;
+  updatedAt: string; // ISO timestamp
+}
+
+export interface NewStrategyNoteInput {
+  strategyId: string;
+  trackRecord: string;
+}
+
+export type AuditAction = 'create' | 'update' | 'delete' | 'upload' | 'reset';
+
+export type AuditEntity =
+  | 'document'
+  | 'article'
+  | 'strategy_nav'
+  | 'strategy_performance'
+  | 'strategy_note'
+  | 'user';
+
+/** One immutable record of a change made from the Console (System Admin only). */
+export interface AuditLogEntry {
+  id: string;
+  actorId?: string;
+  actorEmail: string;
+  actorName?: string;
+  action: AuditAction;
+  entity: AuditEntity;
+  entityId?: string;
+  summary: string;
+  details?: Record<string, unknown>;
+  createdAt: string; // ISO timestamp
+}
+
+/** What a backend records for each Console mutation (actor + time added). */
+export interface NewAuditInput {
+  action: AuditAction;
+  entity: AuditEntity;
+  entityId?: string;
+  summary: string;
+  details?: Record<string, unknown>;
 }
 
 export interface NewArticleInput {
@@ -249,8 +328,22 @@ export interface CmsBackend {
   listOnboarding(): Promise<OnboardingRecord[]>;
   signOnboardingFile(path: string): Promise<string | null>;
 
-  /** Team: list team accounts (Access screen). */
+  /** System Admin: list team accounts (Access screen). */
   listTeamUsers(): Promise<TeamUser[]>;
+  /** System Admin: create a pre-confirmed team account with a role. */
+  addTeamUser(input: NewTeamUserInput): Promise<void>;
+  /** System Admin: delete a team account (not yourself, not the last System Admin). */
+  removeTeamUser(id: string): Promise<void>;
+  /** System Admin: change a team account's role. */
+  setTeamUserRole(id: string, role: TeamRole): Promise<void>;
+
+  /** Per-strategy editable notes (track-record banner on the Strategies page). */
+  listStrategyNotes(): StrategyNote[];
+  saveStrategyNote(input: NewStrategyNoteInput): Promise<StrategyNote>;
+  deleteStrategyNote(strategyId: string): Promise<void>;
+
+  /** System Admin: read the Console audit log, newest first. */
+  listAuditLogs(): Promise<AuditLogEntry[]>;
 
   /** Subscribe to any data/session change; returns an unsubscribe fn. */
   subscribe(cb: () => void): () => void;
