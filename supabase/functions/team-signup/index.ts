@@ -6,7 +6,8 @@
 // Deploy:  supabase functions deploy team-signup
 // Secret:  supabase secrets set TEAM_SIGNUP_CODE=choose-a-strong-shared-code
 //
-// New accounts are created pre-confirmed and are Super Admins (our single tier).
+// New accounts are created pre-confirmed with the 'admin' role (content only).
+// System Admins are promoted from the Console → Access screen.
 
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -44,6 +45,7 @@ serve(async (req) => {
       email: String(email).trim(),
       password: String(password),
       email_confirm: true, // pre-confirmed — no email step needed
+      app_metadata: { role: 'admin' },
     });
 
     if (error) return json({ ok: false, error: error.message });

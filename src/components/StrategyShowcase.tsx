@@ -5,7 +5,7 @@ import { STRATEGIES } from '../data/content';
 import strategyNav from '../data/strategyNav.json';
 import { useTopMonthlyStrategyId } from '../lib/topPerformer';
 import { useCmsStrategyNav } from '../lib/cms/store';
-import { useResolvedPerformanceTables } from '../lib/performance';
+import { useResolvedPerformanceTables, useTrackRecord } from '../lib/performance';
 import { useAsOnDate } from '../lib/asOn';
 import { deriveNavStats } from '../lib/cms/navParser';
 import { Disclaimer } from './shared';
@@ -115,6 +115,8 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
   };
 
   const active = STRATEGIES.find((s) => s.id === activeId) || STRATEGIES[0];
+  // Console-editable per strategy (Track Record section); falls back to content.ts.
+  const trackRecord = useTrackRecord(active.id);
   const perf = perfTables.find((t) => t.strategy === active.name);
   const benchmarkName =
     perf?.benchmarkName ?? active.keyFacts.find((f) => f.k === 'Benchmark')?.v ?? 'Benchmark';
@@ -226,11 +228,11 @@ export const StrategyShowcase: React.FC<StrategyShowcaseProps> = ({
             ))}
           </div>
 
-          {active.trackRecord && (
+          {trackRecord && (
             <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-accent-50 border border-accent-100">
               <Trophy className="w-4 h-4 text-accent-600 shrink-0 mt-0.5" />
               <span className="text-[11px] sm:text-xs font-semibold text-ink-800 leading-relaxed">
-                {active.trackRecord}
+                {trackRecord}
               </span>
             </div>
           )}
