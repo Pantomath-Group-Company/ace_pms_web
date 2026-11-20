@@ -120,7 +120,8 @@ const impactCards: ImpactCard[] = [
   },
   {
     id: 'alpha',
-    metric: '24%*',
+    // metric/description are replaced at render with the live 5Y range.
+    metric: '19–25%*',
     title: '5-Yr annualized return',
     description: 'A ~24% annualized return across our strategies over the last 5 years.',
     redirect: '/performance',
@@ -160,6 +161,19 @@ const impactCards: ImpactCard[] = [
 export const WhyAcePmsSection = () => {
   const [openCard, setOpenCard] = useState(0);
   const reduce = useReducedMotion();
+  const fiveYr = useFiveYearReturnRange();
+  const cards = impactCards.map((card) =>
+    card.id === 'alpha' && fiveYr
+      ? {
+          ...card,
+          metric: `${fiveYr.label}%*`,
+          description:
+            fiveYr.min === fiveYr.max
+              ? `A ${fiveYr.label}% annualized return across our strategies over the last 5 years.`
+              : `Annualized returns of ${fiveYr.label.replace('–', '% to ')}% across our strategies over the last 5 years.`,
+        }
+      : card,
+  );
 
   const spring = reduce
     ? { duration: 0 }

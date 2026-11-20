@@ -20,3 +20,81 @@ export function useResolvedPerformanceTables(): PerformanceTable[] {
     return { ...t, rows: { portfolio: up.portfolio, benchmark: up.benchmark, alpha } };
   });
 }
+
+export type GrowthEntry = (typeof PERFORMANCE.growth)[number];
+
+const round1 = (v: number) => Math.round(v * 10) / 10;
+
+/**
+ * "Growth of ₹1 crore" cards, kept identical to the Strategies page:
+ * a Console-uploaded NAV series (rebased to ₹1 cr at inception) supplies the
+ * ₹ endpoint values and "as on" date; otherwise the strategy's own figures in
+ * STRATEGIES[].growth are used — the same source the Strategies page reads.
+ */
+export function useResolvedGrowth(): GrowthEntry[] {
+  const uploaded = useCmsStrategyNav();
+  return PERFORMANCE.growth.map((g) => {
+    // Growth cards use short names ("ACE Ten Trillion") while STRATEGIES may carry
+    // the full name ("ACE Ten Trillion Opportunities") — match either way.
+    const s =
+      STRATEGIES.find((x) => x.name === g.strategy) ??
+      STRATEGIES.find((x) => x.name.startsWith(g.strategy) || g.strategy.startsWith(x.name));
+    if (!s) return g;
+    const series = uploaded.find((u) => u.strategyId === s.id);
+    const last = series?.points?.length && series.points.length > 1 ? series.points[series.points.length - 1] : null;
+    if (series && last) {
+      return {
+        ...g,
+        terminalValue: round1(last[0]),
+        benchmarkValue: round1(last[1]),
+        asOn: formatAsOn(series.asOf),
+      };
+    }
+    return {
+      ...g,
+      terminalValue: s.growth.strategyValue,
+      benchmarkValue: s.growth.benchmarkValue,
+      asOn: s.asOn,
+    };
+  });
+}
+
+/** Index of the 5-year column in the [1Y, 3Y, 5Y, SI] horizon arrays. */
+const FIVE_YEAR = 2;
+
+export interface ReturnRange {
+  min: number;
+  max: number;
+  /** Whole-number range, start floored and end ceiled, e.g. "17–21". No % sign. */
+  label: string;
+}
+
+/**
+ * 5-year annualised return range across every strategy: the lowest 5Y
+ * portfolio return is the start, the highest is the end. Reads the resolved
+ * tables, so a Console upload for any strategy moves the range immediately.
+ */
+export function useFiveYearReturnRange(): ReturnRange | null {
+  const values = useResolvedPerformanceTables()
+    .map((t) => Number(t.rows.portfolio[FIVE_YEAR]))
+    .filter((v) => Number.isFinite(v));
+  if (values.length === 0) return null;
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  // Whole percentages: start rounds down, end rounds up (17.7–20.1 → 17–21).
+  const lo = Math.floor(min);
+  const hi = Math.ceil(max);
+  const label = lo === hi ? String(hi) : `${lo}–${hi}`;
+  return { min, max, label };
+}
+
+/**
+ * Track-record banner for a strategy: the Console-edited note when one exists
+ * (an empty note hides the banner), otherwise the built-in content.ts text.
+ */
+export function useTrackRecord(strategyId: string): string | undefined {
+  const notes = useCmsStrategyNotes();
+  const note = notes.find((n) => n.strategyId === strategyId);
+  if (note) return note.trackRecord.trim() || undefined;
+  return STRATEGIES.find((s) => s.id === strategyId)?.trackRecord;
+}
