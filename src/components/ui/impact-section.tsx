@@ -122,7 +122,7 @@ const impactCards: ImpactCard[] = [
   {
     id: 'alpha',
     // metric/description are replaced at render with the live 5Y range.
-    metric: '19.9–24.8%*',
+    metric: '19–25%*',
     title: '5-Yr annualized return',
     description: 'Annualized returns of 19.9% to 24.8% across our strategies over the last 5 years.',
     redirect: '/performance',
@@ -169,7 +169,7 @@ export const WhyAcePmsSection = () => {
           ...card,
           metric: `${fiveYr.label}%*`,
           description:
-            fiveYr.min === fiveYr.max
+            !fiveYr.label.includes('–')
               ? `A ${fiveYr.label}% annualized return across our strategies over the last 5 years.`
               : `Annualized returns of ${fiveYr.label.replace('–', '% to ')}% across our strategies over the last 5 years.`,
         }

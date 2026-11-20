@@ -72,7 +72,7 @@ export const CREDIBILITY_BAR = [
     label: '5-YR ANNUALISED RETURN',
     // Fallback only — HomePage replaces this with the live lowest–highest
     // 5Y return range across all strategies (useFiveYearReturnRange).
-    value: '19.9–24.8',
+    value: '19–25',
     suffix: '%*',
     text: 'Annualised return range across our strategies over the last 5 years',
   },

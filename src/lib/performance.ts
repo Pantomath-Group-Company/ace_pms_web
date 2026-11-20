@@ -35,7 +35,11 @@ const round1 = (v: number) => Math.round(v * 10) / 10;
 export function useResolvedGrowth(): GrowthEntry[] {
   const uploaded = useCmsStrategyNav();
   return PERFORMANCE.growth.map((g) => {
-    const s = STRATEGIES.find((x) => x.name === g.strategy);
+    // Growth cards use short names ("ACE Ten Trillion") while STRATEGIES may carry
+    // the full name ("ACE Ten Trillion Opportunities") — match either way.
+    const s =
+      STRATEGIES.find((x) => x.name === g.strategy) ??
+      STRATEGIES.find((x) => x.name.startsWith(g.strategy) || g.strategy.startsWith(x.name));
     if (!s) return g;
     const series = uploaded.find((u) => u.strategyId === s.id);
     const last = series?.points?.length && series.points.length > 1 ? series.points[series.points.length - 1] : null;
@@ -59,15 +63,10 @@ export function useResolvedGrowth(): GrowthEntry[] {
 /** Index of the 5-year column in the [1Y, 3Y, 5Y, SI] horizon arrays. */
 const FIVE_YEAR = 2;
 
-const fmtPct = (v: number) => {
-  const r = Math.round(v * 10) / 10;
-  return Number.isInteger(r) ? String(r) : r.toFixed(1);
-};
-
 export interface ReturnRange {
   min: number;
   max: number;
-  /** "19.9–24.8" (or a single "24.8" when every strategy is equal). No % sign. */
+  /** Whole-number range, start floored and end ceiled, e.g. "17–21". No % sign. */
   label: string;
 }
 
@@ -83,7 +82,10 @@ export function useFiveYearReturnRange(): ReturnRange | null {
   if (values.length === 0) return null;
   const min = Math.min(...values);
   const max = Math.max(...values);
-  const label = fmtPct(min) === fmtPct(max) ? fmtPct(max) : `${fmtPct(min)}–${fmtPct(max)}`;
+  // Whole percentages: start rounds down, end rounds up (17.7–20.1 → 17–21).
+  const lo = Math.floor(min);
+  const hi = Math.ceil(max);
+  const label = lo === hi ? String(hi) : `${lo}–${hi}`;
   return { min, max, label };
 }
 

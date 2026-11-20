@@ -10,8 +10,6 @@
 /* ------------------------------------------------------------------ */
 
 import { supabase, BUCKETS } from './supabaseClient';
-import { REDIRECT_EMAIL } from './config';
-import { STRATEGIES } from '../../data/content';
 import type {
   CallbackInput,
   CallbackRecord,
@@ -145,6 +143,21 @@ function mapAudit(row: any): AuditLogEntry {
 }
 
 /** Invoke the team-users Edge Function and unwrap its { ok, error } envelope. */
+/**
+ * Email a form submission to the PMS desk via our own server route
+ * (api/notify.ts — Vercel function in prod, Vite middleware in dev). SMTP
+ * settings live only in server-side env vars; the recipient is fixed there.
+ */
+async function sendNotification(body: { type: string; submission: Record<string, unknown> }) {
+  const res = await fetch('/api/notify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => null);
+  if (!res.ok || !data?.ok) throw new Error(data?.error || `notify HTTP ${res.status}`);
+}
+
 async function teamUsersCall(body: Record<string, unknown>): Promise<any> {
   const { data, error } = await supabase.functions.invoke('team-users', { body });
   if (error) {
@@ -666,22 +679,20 @@ class SupabaseBackend implements CmsBackend {
 
     // Fire the email notification. Non-fatal: the record is already stored.
     try {
-      await supabase.functions.invoke('notify', {
-        body: {
-          type: 'client_onboarding',
-          to: REDIRECT_EMAIL,
-          submission: {
-            fullName: input.fullName,
-            email: input.email,
-            mobile: input.mobile,
-            pan: input.pan,
-            notes: input.notes,
-            documents: documents.map((d) => ({ label: d.label, fileName: d.fileName })),
-          },
+      await sendNotification({
+        type: 'client_onboarding',
+        submission: {
+          fullName: input.fullName,
+          email: input.email,
+          mobile: input.mobile,
+          pan: input.pan,
+          notes: input.notes,
+          documents: documents.map((d) => ({ label: d.label, fileName: d.fileName })),
         },
       });
-    } catch {
-      /* Edge function not deployed yet — submission is safe in the DB. */
+    } catch (err) {
+      // Submission is safe in the DB even if the email fails.
+      console.warn('Onboarding email not sent:', err);
     }
   }
 
@@ -699,27 +710,21 @@ class SupabaseBackend implements CmsBackend {
 
     // Fire the email notification. Non-fatal: the enquiry is already stored.
     try {
-      await supabase.functions.invoke('notify', {
-        body: {
-          type: 'callback',
-          to: REDIRECT_EMAIL,
-          submission: {
-            fullName: input.name,
-            email: input.email,
-            mobile: input.mobile,
-            notes: [
-              input.visitorType && `Type: ${input.visitorType}`,
-              input.corpus && `Corpus: ${input.corpus}`,
-              input.city && `City: ${input.city}`,
-              input.message,
-            ]
-              .filter(Boolean)
-              .join(' · '),
-          },
+      await sendNotification({
+        type: 'callback',
+        submission: {
+          fullName: input.name,
+          email: input.email,
+          mobile: input.mobile,
+          visitorType: input.visitorType,
+          corpus: input.corpus,
+          city: input.city,
+          message: input.message,
         },
       });
-    } catch {
-      /* Edge function not deployed yet — enquiry is safe in the DB. */
+    } catch (err) {
+      // Enquiry is safe in the DB even if the email fails.
+      console.warn('Callback email not sent:', err);
     }
   }
 

@@ -91,23 +91,27 @@ Track Record edits, and user add/remove/role changes — is written to `public.a
 (who, what, when, before/after details). **Console → Audit Logs** shows them to System Admins
 only (enforced by RLS via `public.is_system_admin()`). Rows can't be edited or deleted from the app.
 
-## 3. Turn on email notifications (onboarding + callbacks → pms@acm.co.in)
-Submissions are always stored in Supabase; this step also emails them to the desk.
+## 3. Email notifications (Request a Callback + onboarding → pms@acm.co.in)
+Submissions are always stored in Supabase (`callbacks`, `client_onboarding`). They are also
+emailed to **pms@acm.co.in** over SMTP (Falconide) by the site's own server route
+[`api/notify.ts`](api/notify.ts) — no Supabase Edge Function involved. Mail is sent from
+`donotreply@acm.co.in` with Reply-To set to the visitor's email.
 
-1. Create a free account at **resend.com** and generate an API key.
-   - To send *from* your own domain (`onboarding@acm.co.in`), verify the domain in Resend
-     and update the `from:` line in `supabase/functions/notify/index.ts`. Otherwise the
-     default `onboarding@resend.dev` sender works for testing.
-2. Install the Supabase CLI and deploy the function (from the `website/` folder):
-   ```bash
-   supabase login
-   supabase link --project-ref rddoxqixhubnnvayfnjv
-   supabase secrets set RESEND_API_KEY=re_your_key_here
-   supabase functions deploy notify
-   ```
-3. Done — new client onboarding submissions now email **pms@acm.co.in** with the applicant's
-   details and a list of the uploaded KYC files (the files themselves live in the private
-   `onboarding` bucket; open the `client_onboarding` table to download them).
+Configuration is env-only (server-side; never prefix with `VITE_`):
+
+| Key | Value |
+|---|---|
+| `SMTP_HOST` | smtp.falconide.com |
+| `SMTP_PORT` | 465 |
+| `SMTP_USERNAME` | acmmails |
+| `SMTP_PASSWORD` | *(the Falconide password)* |
+| `SMTP_FROM` | donotreply@acm.co.in |
+| `NOTIFY_TO` | pms@acm.co.in |
+
+- **Local:** put them in `.env` (git-ignored; see `.env.example`). `npm run dev` serves
+  `/api/notify` from the Vite dev server.
+- **Production (Vercel):** add the same keys in **Vercel → Project → Settings → Environment
+  Variables**, then redeploy. Vercel runs `api/notify.ts` as a serverless function.
 
 If you skip step 3, nothing breaks — submissions still land safely in the
 `client_onboarding` table for you to review in the dashboard.
