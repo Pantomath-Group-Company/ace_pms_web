@@ -168,7 +168,7 @@ export const WhyAcePmsSection = () => {
           ...card,
           metric: `${fiveYr.label}%*`,
           description:
-            fiveYr.min === fiveYr.max
+            !fiveYr.label.includes('–')
               ? `A ${fiveYr.label}% annualized return across our strategies over the last 5 years.`
               : `Annualized returns of ${fiveYr.label.replace('–', '% to ')}% across our strategies over the last 5 years.`,
         }
