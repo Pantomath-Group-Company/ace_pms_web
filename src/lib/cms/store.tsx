@@ -18,6 +18,7 @@ import type {
   CmsDocument,
   CmsSession,
   StrategyNavSeries,
+  StrategyNote,
   StrategyPerformance,
 } from './types';
 
@@ -26,6 +27,8 @@ import type {
 interface AuthValue {
   session: CmsSession | null;
   isTeam: boolean;
+  /** Can manage team users and read the audit log. */
+  isSystemAdmin: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, code: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -56,7 +59,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo<AuthValue>(
-    () => ({ session, isTeam: Boolean(session), signIn, register, signOut }),
+    () => ({
+      session,
+      isTeam: Boolean(session),
+      isSystemAdmin: session?.user.role === 'system_admin',
+      signIn,
+      register,
+      signOut,
+    }),
     [session, signIn, register, signOut],
   );
 
@@ -87,4 +97,8 @@ export function useCmsStrategyNav(): StrategyNavSeries[] {
 
 export function useCmsPerformance(): StrategyPerformance[] {
   return useSyncExternalStore(subscribe, () => cms.listPerformance());
+}
+
+export function useCmsStrategyNotes(): StrategyNote[] {
+  return useSyncExternalStore(subscribe, () => cms.listStrategyNotes());
 }

@@ -74,7 +74,7 @@ export const CREDIBILITY_BAR = [
     // 5Y return range across all strategies (useFiveYearReturnRange).
     value: '19–25',
     suffix: '%*',
-    text: 'Annualised return across our strategies over the last 5 years',
+    text: 'Annualised return range across our strategies over the last 5 years',
   },
   {
     label: 'PHILOSOPHY',

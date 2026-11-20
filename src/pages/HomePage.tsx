@@ -16,10 +16,17 @@ import { StrategyShowcase } from '../components/StrategyShowcase';
 import { GrowthShowcase } from '../components/GrowthShowcase';
 import { RankingsTable } from '../components/RankingsTable';
 import { SectionHeading } from '../components/shared';
+import { useFiveYearReturnRange } from '../lib/performance';
 
 export default function HomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const latestInsights = INSIGHTS.slice(0, 3);
+  // 5-yr annualised return shown as a range: lowest → highest 5Y return across
+  // all strategies (tracks Console-uploaded performance).
+  const fiveYr = useFiveYearReturnRange();
+  const credibility = CREDIBILITY_BAR.map((item) =>
+    item.label === '5-YR ANNUALISED RETURN' && fiveYr ? { ...item, value: fiveYr.label } : item,
+  );
 
   return (
     <>
@@ -33,7 +40,7 @@ export default function HomePage() {
       <section className="bg-white border-b border-slate-200/80 py-10 font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-            {CREDIBILITY_BAR.map((item) => (
+            {credibility.map((item) => (
               <div key={item.label} className="space-y-1 p-2">
                 <span className="text-[10px] text-slate-400 font-mono tracking-widest uppercase block font-bold">
                   {item.label}

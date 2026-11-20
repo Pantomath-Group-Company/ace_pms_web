@@ -27,7 +27,14 @@ import type {
   StrategyPerformance,
   OnboardingRecord,
   TeamUser,
+  TeamRole,
+  NewTeamUserInput,
+  StrategyNote,
+  NewStrategyNoteInput,
+  AuditLogEntry,
+  NewAuditInput,
 } from './types';
+import { normalizeRole } from './types';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -38,6 +45,9 @@ const uid = () =>
 
 const safeName = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, '_');
 
+/** Human-readable strategy name for audit summaries ("multicap" → "ACE Multicap"). */
+const strategyName = (id: string) => STRATEGIES.find((s) => s.id === id)?.name ?? id;
+
 function mapSession(session: any): CmsSession | null {
   if (!session?.user) return null;
   const u = session.user;
@@ -46,6 +56,7 @@ function mapSession(session: any): CmsSession | null {
       id: u.id,
       email: u.email ?? '',
       name: u.user_metadata?.full_name || u.user_metadata?.name || u.email || 'Team member',
+      role: normalizeRole(u.app_metadata?.role),
     },
     token: session.access_token,
   };
@@ -179,6 +190,7 @@ class SupabaseBackend implements CmsBackend {
   private articles: CmsArticle[] = [];
   private strategyNav: StrategyNavSeries[] = [];
   private performance: StrategyPerformance[] = [];
+  private strategyNotes: StrategyNote[] = [];
   private listeners = new Set<() => void>();
 
   constructor() {
@@ -194,6 +206,27 @@ class SupabaseBackend implements CmsBackend {
     void this.refreshArticles();
     void this.refreshStrategyNav();
     void this.refreshPerformance();
+    void this.refreshStrategyNotes();
+  }
+
+  /**
+   * Record a Console change in the audit log. Best-effort: a logging failure
+   * never blocks the content change itself (it is reported to the console).
+   */
+  private async audit(entry: NewAuditInput) {
+    const u = this.session?.user;
+    if (!u) return;
+    const { error } = await supabase.from('audit_logs').insert({
+      actor_id: u.id,
+      actor_email: u.email,
+      actor_name: u.name,
+      action: entry.action,
+      entity: entry.entity,
+      entity_id: entry.entityId ?? null,
+      summary: entry.summary,
+      details: entry.details ?? null,
+    });
+    if (error) console.warn('[audit] could not record change:', error.message);
   }
 
   private emit() {
@@ -247,6 +280,14 @@ class SupabaseBackend implements CmsBackend {
       .order('updated_at', { ascending: false });
     if (!error && data) {
       this.performance = data.map(mapPerformance);
+      this.emit();
+    }
+  }
+
+  private async refreshStrategyNotes() {
+    const { data, error } = await supabase.from('strategy_notes').select('*');
+    if (!error && data) {
+      this.strategyNotes = data.map(mapStrategyNote);
       this.emit();
     }
   }
@@ -325,6 +366,13 @@ class SupabaseBackend implements CmsBackend {
       .single();
     if (error) throw new Error(error.message);
 
+    await this.audit({
+      action: 'create',
+      entity: 'document',
+      entityId: data.id,
+      summary: `Published "${input.title}" in ${input.category}`,
+      details: { title: input.title, category: input.category, strategy: input.strategy, fileName },
+    });
     await this.refreshDocuments();
     return mapDocument(data);
   }
@@ -367,6 +415,22 @@ class SupabaseBackend implements CmsBackend {
       await supabase.storage.from(BUCKETS.documents).remove([oldPath]);
     }
 
+    await this.audit({
+      action: 'update',
+      entity: 'document',
+      entityId: input.id,
+      summary: `Edited "${input.title}"${input.file ? ' (file replaced)' : ''}`,
+      details: {
+        before: current
+          ? { title: current.title, strategy: current.strategy, fileName: current.fileName }
+          : undefined,
+        after: {
+          title: input.title,
+          strategy: input.strategy,
+          fileName: input.file?.name ?? current?.fileName,
+        },
+      },
+    });
     await this.refreshDocuments();
     return mapDocument(data);
   }
@@ -384,6 +448,13 @@ class SupabaseBackend implements CmsBackend {
         await supabase.storage.from(BUCKETS.documents).remove([path]);
       }
     }
+    await this.audit({
+      action: 'delete',
+      entity: 'document',
+      entityId: id,
+      summary: `Deleted "${doc?.title ?? id}"${doc ? ` from ${doc.category}` : ''}`,
+      details: doc ? { title: doc.title, category: doc.category, fileName: doc.fileName } : undefined,
+    });
     await this.refreshDocuments();
   }
 
@@ -409,13 +480,28 @@ class SupabaseBackend implements CmsBackend {
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await this.audit({
+      action: 'create',
+      entity: 'article',
+      entityId: data.id,
+      summary: `Published ${input.kind.toLowerCase()} "${input.title}"`,
+      details: { kind: input.kind, category: input.category, title: input.title },
+    });
     await this.refreshArticles();
     return mapArticle(data);
   }
 
   async deleteArticle(id: string) {
+    const art = this.articles.find((a) => a.id === id);
     const { error } = await supabase.from('articles').delete().eq('id', id);
     if (error) throw new Error(error.message);
+    await this.audit({
+      action: 'delete',
+      entity: 'article',
+      entityId: id,
+      summary: `Deleted article "${art?.title ?? id}"`,
+      details: art ? { kind: art.kind, category: art.category, title: art.title } : undefined,
+    });
     await this.refreshArticles();
   }
 
@@ -444,6 +530,13 @@ class SupabaseBackend implements CmsBackend {
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await this.audit({
+      action: 'upload',
+      entity: 'strategy_nav',
+      entityId: input.strategyId,
+      summary: `Uploaded NAV series for ${strategyName(input.strategyId)} (${input.labels[0]} – ${input.labels[input.labels.length - 1]})`,
+      details: { since: input.since, asOf: input.asOf, months: input.labels.length },
+    });
     await this.refreshStrategyNav();
     return mapStrategyNav(data);
   }
@@ -451,6 +544,12 @@ class SupabaseBackend implements CmsBackend {
   async deleteStrategyNav(strategyId: string) {
     const { error } = await supabase.from('strategy_nav').delete().eq('strategy_id', strategyId);
     if (error) throw new Error(error.message);
+    await this.audit({
+      action: 'reset',
+      entity: 'strategy_nav',
+      entityId: strategyId,
+      summary: `Reset NAV series for ${strategyName(strategyId)} to built-in data`,
+    });
     await this.refreshStrategyNav();
   }
 
@@ -461,6 +560,7 @@ class SupabaseBackend implements CmsBackend {
   }
 
   async savePerformance(input: NewStrategyPerformanceInput): Promise<StrategyPerformance> {
+    const before = this.performance.find((p) => p.strategyId === input.strategyId);
     const { data, error } = await supabase
       .from('strategy_performance')
       .upsert(
@@ -476,6 +576,16 @@ class SupabaseBackend implements CmsBackend {
       .select()
       .single();
     if (error) throw new Error(error.message);
+    await this.audit({
+      action: 'upload',
+      entity: 'strategy_performance',
+      entityId: input.strategyId,
+      summary: `Uploaded horizon returns for ${strategyName(input.strategyId)}`,
+      details: {
+        before: before ? { portfolio: before.portfolio, benchmark: before.benchmark } : undefined,
+        after: { portfolio: input.portfolio, benchmark: input.benchmark },
+      },
+    });
     await this.refreshPerformance();
     return mapPerformance(data);
   }
@@ -486,7 +596,60 @@ class SupabaseBackend implements CmsBackend {
       .delete()
       .eq('strategy_id', strategyId);
     if (error) throw new Error(error.message);
+    await this.audit({
+      action: 'reset',
+      entity: 'strategy_performance',
+      entityId: strategyId,
+      summary: `Reset horizon returns for ${strategyName(strategyId)} to built-in figures`,
+    });
     await this.refreshPerformance();
+  }
+
+  /* ---- strategy notes (track-record banner) ---- */
+
+  listStrategyNotes() {
+    return this.strategyNotes;
+  }
+
+  async saveStrategyNote(input: NewStrategyNoteInput): Promise<StrategyNote> {
+    const before = this.strategyNotes.find((n) => n.strategyId === input.strategyId);
+    const { data, error } = await supabase
+      .from('strategy_notes')
+      .upsert(
+        {
+          strategy_id: input.strategyId,
+          track_record: input.trackRecord,
+          updated_by: this.session?.user.name ?? 'Team',
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'strategy_id' },
+      )
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    await this.audit({
+      action: 'update',
+      entity: 'strategy_note',
+      entityId: input.strategyId,
+      summary: `Updated track-record note for ${strategyName(input.strategyId)}`,
+      details: { before: before?.trackRecord, after: input.trackRecord },
+    });
+    await this.refreshStrategyNotes();
+    return mapStrategyNote(data);
+  }
+
+  async deleteStrategyNote(strategyId: string) {
+    const before = this.strategyNotes.find((n) => n.strategyId === strategyId);
+    const { error } = await supabase.from('strategy_notes').delete().eq('strategy_id', strategyId);
+    if (error) throw new Error(error.message);
+    await this.audit({
+      action: 'reset',
+      entity: 'strategy_note',
+      entityId: strategyId,
+      summary: `Reset track-record note for ${strategyName(strategyId)} to built-in text`,
+      details: { before: before?.trackRecord },
+    });
+    await this.refreshStrategyNotes();
   }
 
   /* ---- onboarding ---- */
@@ -612,21 +775,43 @@ class SupabaseBackend implements CmsBackend {
   }
 
   async listTeamUsers(): Promise<TeamUser[]> {
-    // Listing auth users requires service_role, so it runs in an Edge Function.
-    try {
-      const { data, error } = await supabase.functions.invoke('team-users');
-      if (error || !data?.users) throw error ?? new Error('no users');
-      return (data.users as any[]).map((u) => ({
-        id: u.id,
-        email: u.email,
-        createdAt: u.created_at,
-        lastSignInAt: u.last_sign_in_at,
-      }));
-    } catch {
-      // Fallback: at least show the current user until the function is deployed.
-      const u = this.session?.user;
-      return u ? [{ id: u.id, email: u.email }] : [];
-    }
+    // Listing auth users requires service_role, so it runs in an Edge Function
+    // (which only answers System Admins).
+    const data = await teamUsersCall({ action: 'list' });
+    return (data.users as any[]).map((u) => ({
+      id: u.id,
+      email: u.email,
+      name: u.name ?? u.user_metadata?.full_name ?? undefined,
+      role: normalizeRole(u.role ?? u.app_metadata?.role),
+      createdAt: u.created_at ?? u.createdAt,
+      lastSignInAt: u.last_sign_in_at ?? u.lastSignInAt,
+    }));
+  }
+
+  // User-management audit entries are written server-side by the function.
+  async addTeamUser(input: NewTeamUserInput) {
+    await teamUsersCall({ action: 'create', ...input, email: input.email.trim() });
+  }
+
+  async removeTeamUser(id: string) {
+    await teamUsersCall({ action: 'delete', userId: id });
+  }
+
+  async setTeamUserRole(id: string, role: TeamRole) {
+    await teamUsersCall({ action: 'setRole', userId: id, role });
+  }
+
+  /* ---- audit log ---- */
+
+  async listAuditLogs(): Promise<AuditLogEntry[]> {
+    // RLS returns rows only to System Admins (public.is_system_admin()).
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(1000);
+    if (error) throw new Error(error.message);
+    return (data ?? []).map(mapAudit);
   }
 }
 

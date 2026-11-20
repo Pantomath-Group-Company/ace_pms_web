@@ -83,6 +83,56 @@ create table if not exists public.strategy_performance (
   updated_at  timestamptz not null default now()
 );
 
+-- Per-strategy editable copy (Console → Track Record). Overrides the built-in
+-- track-record banner on the Strategies page; '' hides it, no row = built-in.
+create table if not exists public.strategy_notes (
+  strategy_id  text primary key,                   -- multicap | tentrillion | multiasset
+  track_record text not null default '',
+  updated_by   text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now()
+);
+
+-- Immutable log of every change made from the Console. Readable by System
+-- Admins only; rows can be inserted but never updated or deleted from the app.
+create table if not exists public.audit_logs (
+  id          uuid primary key default gen_random_uuid(),
+  actor_id    uuid,
+  actor_email text not null,
+  actor_name  text,
+  action      text not null,      -- create | update | delete | upload | reset
+  entity      text not null,      -- document | article | strategy_nav | strategy_performance | strategy_note | user
+  entity_id   text,
+  summary     text not null,
+  details     jsonb,
+  created_at  timestamptz not null default now()
+);
+create index if not exists audit_logs_created_at_idx on public.audit_logs (created_at desc);
+
+-- ---------------------------------------------------------------------------
+-- Roles
+-- Each team account carries its role in auth.users.raw_app_meta_data->>'role'
+-- ('system_admin' | 'admin'; missing = 'admin'). app_metadata can only be set
+-- with the service_role (Edge Functions / SQL editor), never by the user.
+-- Bootstrap your first System Admin once in the SQL editor:
+--   update auth.users
+--      set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"system_admin"}'
+--    where email = 'you@acm.co.in';
+-- ---------------------------------------------------------------------------
+create or replace function public.is_system_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public, auth
+as $$
+  select exists (
+    select 1 from auth.users
+     where id = auth.uid()
+       and raw_app_meta_data->>'role' = 'system_admin'
+  );
+$$;
+
 -- ---------------------------------------------------------------------------
 -- Row Level Security
 -- ---------------------------------------------------------------------------
@@ -92,6 +142,8 @@ alter table public.client_onboarding enable row level security;
 alter table public.callbacks         enable row level security;
 alter table public.strategy_nav      enable row level security;
 alter table public.strategy_performance enable row level security;
+alter table public.strategy_notes    enable row level security;
+alter table public.audit_logs        enable row level security;
 
 -- Public site content: anyone may read
 drop policy if exists "documents public read" on public.documents;
@@ -118,6 +170,22 @@ create policy "strategy_performance public read" on public.strategy_performance 
 
 drop policy if exists "strategy_performance team write" on public.strategy_performance;
 create policy "strategy_performance team write" on public.strategy_performance for all to authenticated using (true) with check (true);
+
+drop policy if exists "strategy_notes public read" on public.strategy_notes;
+create policy "strategy_notes public read" on public.strategy_notes for select using (true);
+
+drop policy if exists "strategy_notes team write" on public.strategy_notes;
+create policy "strategy_notes team write" on public.strategy_notes for all to authenticated using (true) with check (true);
+
+-- Audit log: any team member's own actions are recorded (actor must be the
+-- caller); only System Admins may read. No update/delete policies → immutable.
+drop policy if exists "audit_logs team insert" on public.audit_logs;
+create policy "audit_logs team insert" on public.audit_logs for insert to authenticated
+  with check (actor_id = auth.uid());
+
+drop policy if exists "audit_logs system admin read" on public.audit_logs;
+create policy "audit_logs system admin read" on public.audit_logs for select to authenticated
+  using (public.is_system_admin());
 
 -- Onboarding: the public may submit; only the team may read
 drop policy if exists "onboarding public insert" on public.client_onboarding;

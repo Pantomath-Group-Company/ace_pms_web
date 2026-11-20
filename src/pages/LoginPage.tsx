@@ -254,8 +254,8 @@ function TeamPanel({ onBack }: { onBack: () => void }) {
             </p>
           ) : (
             <p className="text-[10px] text-slate-400 leading-relaxed">
-              Registering needs your team's access code. Any work email is accepted, and every
-              account is a Super Admin.
+              Registering needs your team's access code. Any work email is accepted; new accounts
+              are Admins (a System Admin can change roles in the Console).
             </p>
           )}
         </div>

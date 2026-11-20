@@ -25,6 +25,10 @@ import {
   BarChart3,
   Upload,
   RotateCcw,
+  Trophy,
+  History,
+  UserMinus,
+  Save,
 } from 'lucide-react';
 import {
   useAuth,
@@ -32,6 +36,7 @@ import {
   useCmsDocuments,
   useCmsStrategyNav,
   useCmsPerformance,
+  useCmsStrategyNotes,
 } from '../lib/cms/store';
 import { cms } from '../lib/cms/backend';
 import { STRATEGIES } from '../data/content';
@@ -45,6 +50,10 @@ import {
   type OnboardingRecord,
   type CallbackRecord,
   type TeamUser,
+  type TeamRole,
+  type AuditLogEntry,
+  TEAM_ROLES,
+  ROLE_LABELS,
 } from '../lib/cms/types';
 import { useToast } from '../components/toast';
 
@@ -52,7 +61,16 @@ import { useToast } from '../components/toast';
 /* Sections — the console sidebar, mapped to real ACE PMS content.     */
 /* ------------------------------------------------------------------ */
 
-type SectionType = 'doc' | 'article' | 'onboarding' | 'access' | 'nav' | 'perf' | 'callback';
+type SectionType =
+  | 'doc'
+  | 'article'
+  | 'onboarding'
+  | 'access'
+  | 'nav'
+  | 'perf'
+  | 'notes'
+  | 'callback'
+  | 'audit';
 
 interface Section {
   key: string;
@@ -61,6 +79,8 @@ interface Section {
   type: SectionType;
   category?: DocCategory;
   kinds?: ArticleKind[];
+  /** Hidden from (and inaccessible to) plain Admins. */
+  systemAdminOnly?: boolean;
 }
 
 // Note: Insights/blog posts are file-managed in src/content/insights.json,
@@ -70,12 +90,23 @@ const SECTIONS: Section[] = [
   { key: 'decks', label: 'Product Decks', icon: FileText, type: 'doc', category: 'Product decks' },
   { key: 'strategy', label: 'Strategy', icon: LineChart, type: 'nav' },
   { key: 'performance', label: 'Performance', icon: BarChart3, type: 'perf' },
+  { key: 'track-record', label: 'Track Record', icon: Trophy, type: 'notes' },
   { key: 'compliance', label: 'Compliance', icon: ShieldCheck, type: 'doc', category: 'Compliance & disclosures' },
   { key: 'forms', label: 'Forms', icon: ClipboardList, type: 'doc', category: 'Forms' },
   { key: 'onboarding', label: 'Onboarding', icon: Inbox, type: 'onboarding' },
   { key: 'enquiries', label: 'Enquiries', icon: PhoneCall, type: 'callback' },
-  { key: 'access', label: 'Access', icon: Users, type: 'access' },
+  { key: 'access', label: 'Access', icon: Users, type: 'access', systemAdminOnly: true },
+  { key: 'audit', label: 'Audit Logs', icon: History, type: 'audit', systemAdminOnly: true },
 ];
+
+const fmtDateTime = (iso: string) =>
+  new Date(iso).toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
 const fmtDate = (iso: string) =>
   new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
@@ -88,14 +119,16 @@ const inputCls =
 /* ------------------------------------------------------------------ */
 
 export default function AdminPage() {
-  const { session, signOut } = useAuth();
+  const { session, signOut, isSystemAdmin } = useAuth();
   const [activeKey, setActiveKey] = useState('factsheets');
   const [search, setSearch] = useState('');
   const [entryOpen, setEntryOpen] = useState(false);
 
   if (!session) return <Navigate to="/login" replace />;
 
-  const active = SECTIONS.find((s) => s.key === activeKey) ?? SECTIONS[0];
+  // Plain Admins never see (or can land on) System-Admin-only sections.
+  const sections = SECTIONS.filter((s) => isSystemAdmin || !s.systemAdminOnly);
+  const active = sections.find((s) => s.key === activeKey) ?? sections[0];
   const canCreate = active.type === 'doc' || active.type === 'article';
 
   return (
@@ -105,8 +138,12 @@ export default function AdminPage() {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 h-16 flex items-center gap-4">
           <div className="flex items-center gap-2.5 shrink-0">
             <span className="font-extrabold tracking-tight text-lg">CONSOLE</span>
-            <span className="text-[9px] font-bold uppercase tracking-wider text-white bg-accent-500 px-1.5 py-0.5 rounded">
-              Super
+            <span
+              className={`text-[9px] font-bold uppercase tracking-wider text-white px-1.5 py-0.5 rounded ${
+                isSystemAdmin ? 'bg-ink-900' : 'bg-accent-500'
+              }`}
+            >
+              {ROLE_LABELS[session.user.role]}
             </span>
             <span className="hidden md:inline text-slate-200">|</span>
             <span className="hidden md:inline text-[11px] font-mono text-slate-400 truncate max-w-[220px]">
@@ -137,8 +174,8 @@ export default function AdminPage() {
         {/* Sidebar */}
         <aside className="lg:w-56 shrink-0 flex flex-col gap-4">
           <nav className="bg-white border border-slate-200 rounded-2xl p-2 flex lg:flex-col gap-1 overflow-x-auto">
-            {SECTIONS.map((s) => {
-              const isActive = s.key === activeKey;
+            {sections.map((s) => {
+              const isActive = s.key === active.key;
               const Icon = s.icon;
               return (
                 <button
@@ -187,9 +224,13 @@ export default function AdminPage() {
             {active.type === 'article' && <ArticleList kinds={active.kinds!} search={search} />}
             {active.type === 'nav' && <NavManager />}
             {active.type === 'perf' && <PerfManager />}
+            {active.type === 'notes' && <NotesManager />}
             {active.type === 'onboarding' && <OnboardingList search={search} />}
             {active.type === 'callback' && <CallbackList search={search} />}
-            {active.type === 'access' && <AccessList search={search} currentEmail={session.user.email} />}
+            {active.type === 'access' && isSystemAdmin && (
+              <AccessList search={search} currentId={session.user.id} />
+            )}
+            {active.type === 'audit' && isSystemAdmin && <AuditList search={search} />}
           </div>
         </main>
       </div>
@@ -617,6 +658,115 @@ const PerfManager: FC = () => {
 };
 
 /* ------------------------------------------------------------------ */
+/* Track Record — per-strategy note shown on the Strategies page       */
+/* ------------------------------------------------------------------ */
+
+const NotesManager: FC = () => {
+  const showToast = useToast();
+  const notes = useCmsStrategyNotes();
+  const [strategyId, setStrategyId] = useState(STRATEGIES[0].id);
+  const strategy = STRATEGIES.find((s) => s.id === strategyId) ?? STRATEGIES[0];
+  const saved = notes.find((n) => n.strategyId === strategyId);
+  const current = saved ? saved.trackRecord : (strategy.trackRecord ?? '');
+  const [text, setText] = useState(current);
+  const [busy, setBusy] = useState(false);
+
+  // Load the selected strategy's text (and pick up saves made elsewhere).
+  useEffect(() => {
+    setText(current);
+  }, [strategyId, current]);
+
+  const dirty = text.trim() !== current.trim();
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await cms.saveStrategyNote({ strategyId, trackRecord: text.trim() });
+      showToast(
+        text.trim()
+          ? `${strategy.name} track record updated.`
+          : `${strategy.name} track record hidden.`,
+      );
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not save.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reset = async () => {
+    setBusy(true);
+    try {
+      await cms.deleteStrategyNote(strategyId);
+      showToast(`${strategy.name} reverted to the built-in track record.`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not reset.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="px-5 py-3 bg-accent-50/60 border-b border-accent-100">
+        <p className="text-[11px] text-slate-500 leading-relaxed">
+          Select a PMS and edit the{' '}
+          <span className="font-bold text-accent-700">track-record note</span> shown in its card on
+          the Strategies (and Home) page. Save an empty note to hide it; reset to restore the
+          built-in text.
+        </p>
+      </div>
+      <form onSubmit={save} className="p-5 space-y-4 max-w-2xl">
+        <Field label="PMS / Strategy">
+          <select value={strategyId} onChange={(e) => setStrategyId(e.target.value)} className={inputCls}>
+            {STRATEGIES.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label="Track-record note">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            rows={4}
+            placeholder="e.g. Proven track record of 24% CAGR over 5 years (post fees and charges)…"
+            className={inputCls}
+          />
+        </Field>
+        <p className="text-[11px] text-slate-400">
+          {saved
+            ? `Custom note · last updated by ${saved.updatedBy} on ${fmtDate(saved.updatedAt)}`
+            : 'Showing the built-in text.'}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="submit"
+            disabled={busy || !dirty}
+            className="inline-flex items-center gap-2 bg-accent-500 hover:bg-accent-600 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg"
+          >
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Save
+          </button>
+          {saved && (
+            <button
+              type="button"
+              onClick={reset}
+              disabled={busy}
+              className="inline-flex items-center gap-2 text-rose-600 border border-rose-200 hover:bg-rose-50 disabled:opacity-50 font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg"
+            >
+              <RotateCcw className="w-4 h-4" /> Reset to built-in
+            </button>
+          )}
+        </div>
+      </form>
+    </>
+  );
+};
+
+/* ------------------------------------------------------------------ */
 /* Articles                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -819,63 +969,423 @@ const CallbackList: FC<{ search: string }> = ({ search }) => {
 };
 
 /* ------------------------------------------------------------------ */
-/* Access (team users — all Super Admins)                             */
+/* Access — team users & roles (System Admin only)                    */
 /* ------------------------------------------------------------------ */
 
-const AccessList: FC<{ search: string; currentEmail: string }> = ({ search, currentEmail }) => {
+const AccessList: FC<{ search: string; currentId: string }> = ({ search, currentId }) => {
   const showToast = useToast();
   const [users, setUsers] = useState<TeamUser[] | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<TeamUser | null>(null);
+
+  const load = async () => {
+    try {
+      setUsers(await cms.listTeamUsers());
+      setLoadError(null);
+    } catch (err) {
+      setUsers([]);
+      setLoadError(err instanceof Error ? err.message : 'Could not load users.');
+    }
+  };
+
+  useEffect(() => {
+    void load();
+  }, []);
+
+  const remove = async (u: TeamUser) => {
+    if (busyId) return;
+    if (!window.confirm(`Remove ${u.email}? They will lose Console access immediately.`)) return;
+    setBusyId(u.id);
+    try {
+      await cms.removeTeamUser(u.id);
+      showToast(`${u.email} removed.`);
+      await load();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not remove user.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const changeRole = async (u: TeamUser, role: TeamRole) => {
+    if (role === u.role) {
+      setEditing(null);
+      return;
+    }
+    setBusyId(u.id);
+    try {
+      await cms.setTeamUserRole(u.id, role);
+      showToast(`${u.email} is now ${ROLE_LABELS[role]}.`);
+      setEditing(null);
+      await load();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not change role.');
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const q = search.trim().toLowerCase();
+  const rows = (users ?? []).filter(
+    (u) => !q || u.email.toLowerCase().includes(q) || (u.name ?? '').toLowerCase().includes(q),
+  );
+
+  return (
+    <>
+      <div className="px-5 py-3 bg-accent-50/60 border-b border-accent-100 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-[11px] text-slate-500 leading-relaxed max-w-2xl">
+          <span className="font-bold text-accent-700">System Admins</span> manage content, team users
+          and the audit log. <span className="font-bold text-accent-700">Admins</span> manage site
+          content only. Every change here is recorded in Audit Logs.
+        </p>
+        <button
+          onClick={() => setAdding(true)}
+          className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider bg-accent-500 hover:bg-accent-600 text-white rounded-lg px-3 py-2 transition"
+        >
+          <Plus className="w-3.5 h-3.5" /> Add user
+        </button>
+      </div>
+      {loadError && (
+        <p className="px-5 py-3 text-xs text-rose-600 bg-rose-50 border-b border-rose-100">{loadError}</p>
+      )}
+      {users === null ? (
+        <Empty label="Loading…" />
+      ) : rows.length === 0 ? (
+        <Empty label="No users found." />
+      ) : (
+        rows.map((u) => {
+          const isMe = u.id === currentId;
+          const busy = busyId === u.id;
+          return (
+            <Row
+              key={u.id}
+              title={u.name ? `${u.name} · ${u.email}` : u.email}
+              tag={ROLE_LABELS[u.role]}
+              date={u.lastSignInAt ? `Last seen ${fmtDate(u.lastSignInAt)}` : undefined}
+              actions={
+                isMe ? (
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-2 py-0.5">
+                    You
+                  </span>
+                ) : (
+                  <>
+                    {busy && <Loader2 className="w-4 h-4 animate-spin text-slate-400" />}
+                    <button
+                      onClick={() => setEditing(u)}
+                      disabled={busy}
+                      title="Edit role"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-ink-700 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2.5 py-1.5 transition disabled:opacity-60"
+                    >
+                      <Pencil className="w-3.5 h-3.5" /> Edit role
+                    </button>
+                    <IconBtn onClick={() => remove(u)} title="Remove user" danger>
+                      <UserMinus className="w-4 h-4" />
+                    </IconBtn>
+                  </>
+                )
+              }
+            />
+          );
+        })
+      )}
+      {editing && (
+        <SlideOver title="Edit user role" onClose={() => setEditing(null)}>
+          <EditRoleForm user={editing} onSave={(role) => changeRole(editing, role)} />
+        </SlideOver>
+      )}
+      {adding && (
+        <SlideOver title="Add team user" onClose={() => setAdding(false)}>
+          <AddUserForm
+            onDone={() => {
+              setAdding(false);
+              void load();
+            }}
+          />
+        </SlideOver>
+      )}
+    </>
+  );
+};
+
+const SlideOver: FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({
+  title,
+  onClose,
+  children,
+}) => (
+  <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="absolute inset-0 bg-ink-900/40 animate-fadeIn" onClick={onClose} />
+    <div className="relative w-full max-w-md bg-white h-full shadow-2xl overflow-y-auto animate-fadeIn">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 sticky top-0 bg-white">
+        <h3 className="font-extrabold text-slate-900">{title}</h3>
+        <button onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:bg-slate-50">
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      <div className="p-6">{children}</div>
+    </div>
+  </div>
+);
+
+const ROLE_DESCRIPTIONS: Record<TeamRole, string> = {
+  system_admin: 'Manage site content, add/remove team users, change roles and read the Audit Logs.',
+  admin: 'Manage site content only — documents, NAV/performance uploads and Track Record notes.',
+};
+
+const RolePicker: FC<{ value: TeamRole; onChange: (r: TeamRole) => void; name?: string }> = ({
+  value,
+  onChange,
+  name = 'role',
+}) => (
+  <div className="space-y-2" role="radiogroup">
+    {TEAM_ROLES.map((r) => (
+      <label
+        key={r}
+        className={`flex items-start gap-3 rounded-lg border p-3 cursor-pointer transition ${
+          value === r ? 'border-accent-500 bg-accent-50/60 ring-1 ring-accent-500' : 'border-slate-200 hover:bg-slate-50'
+        }`}
+      >
+        <input
+          type="radio"
+          name={name}
+          value={r}
+          checked={value === r}
+          onChange={() => onChange(r)}
+          className="mt-0.5 accent-accent-500"
+        />
+        <span>
+          <span className="block text-sm font-bold text-slate-900">{ROLE_LABELS[r]}</span>
+          <span className="block text-[11px] text-slate-500 leading-relaxed">{ROLE_DESCRIPTIONS[r]}</span>
+        </span>
+      </label>
+    ))}
+  </div>
+);
+
+const EditRoleForm: FC<{ user: TeamUser; onSave: (role: TeamRole) => Promise<void> }> = ({ user, onSave }) => {
+  const [role, setRole] = useState<TeamRole>(user.role);
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await onSave(role);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <div className="rounded-lg bg-slate-50 border border-slate-100 p-3">
+        {user.name && <p className="text-sm font-bold text-slate-900">{user.name}</p>}
+        <p className="text-xs text-slate-500 break-all">{user.email}</p>
+        <p className="text-[11px] text-slate-400 mt-1">
+          Current role: <span className="font-semibold text-accent-600">{ROLE_LABELS[user.role]}</span>
+        </p>
+      </div>
+      <Field label="New role">
+        <RolePicker value={role} onChange={setRole} name="edit-role" />
+      </Field>
+      <p className="text-[11px] text-slate-400">
+        The change applies the next time they sign in and is recorded in Audit Logs.
+      </p>
+      <button
+        type="submit"
+        disabled={busy || role === user.role}
+        className="w-full bg-accent-500 hover:bg-accent-600 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-lg inline-flex items-center justify-center gap-2"
+      >
+        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+        {busy ? 'Saving…' : 'Save role'}
+      </button>
+    </form>
+  );
+};
+
+const AddUserForm: FC<{ onDone: () => void }> = ({ onDone }) => {
+  const showToast = useToast();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [role, setRole] = useState<TeamRole>('admin');
+  const [busy, setBusy] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 8) {
+      showToast('Password must be at least 8 characters.');
+      return;
+    }
+    setBusy(true);
+    try {
+      await cms.addTeamUser({ email: email.trim(), password, name: name.trim() || undefined, role });
+      showToast(`${email.trim()} added as ${ROLE_LABELS[role]}.`);
+      onDone();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not add user.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-4">
+      <Field label="Full name (optional)">
+        <input value={name} onChange={(e) => setName(e.target.value)} className={inputCls} />
+      </Field>
+      <Field label="Email">
+        <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} />
+      </Field>
+      <Field label="Temporary password (min 8 chars)">
+        <input
+          type="text"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          minLength={8}
+          autoComplete="new-password"
+          className={inputCls}
+        />
+      </Field>
+      <Field label="Role">
+        <RolePicker value={role} onChange={setRole} />
+      </Field>
+      <p className="text-[11px] text-slate-400">
+        The account is created pre-confirmed. Share the password securely — they can sign in at
+        /login straight away.
+      </p>
+      <button
+        type="submit"
+        disabled={busy}
+        className="w-full bg-accent-500 hover:bg-accent-600 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-lg inline-flex items-center justify-center gap-2"
+      >
+        {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+        {busy ? 'Adding…' : 'Add user'}
+      </button>
+    </form>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* Audit Logs — every Console change (System Admin only)               */
+/* ------------------------------------------------------------------ */
+
+const ENTITY_LABELS: Record<string, string> = {
+  document: 'Document',
+  article: 'Article',
+  strategy_nav: 'Strategy NAV',
+  strategy_performance: 'Performance',
+  strategy_note: 'Track Record',
+  user: 'User',
+};
+
+const ACTION_STYLES: Record<string, string> = {
+  create: 'text-emerald-700 bg-emerald-50 border-emerald-100',
+  upload: 'text-emerald-700 bg-emerald-50 border-emerald-100',
+  update: 'text-ink-700 bg-ink-50 border-ink-100',
+  reset: 'text-amber-700 bg-amber-50 border-amber-100',
+  delete: 'text-rose-700 bg-rose-50 border-rose-100',
+};
+
+const AuditList: FC<{ search: string }> = ({ search }) => {
+  const [rows, setRows] = useState<AuditLogEntry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [entity, setEntity] = useState('all');
+  const [openId, setOpenId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    cms.listTeamUsers().then((u) => active && setUsers(u));
+    cms
+      .listAuditLogs()
+      .then((r) => active && setRows(r))
+      .catch((err) => {
+        if (!active) return;
+        setRows([]);
+        setError(err instanceof Error ? err.message : 'Could not load the audit log.');
+      });
     return () => {
       active = false;
     };
   }, []);
 
   const q = search.trim().toLowerCase();
-  const rows = (users ?? []).filter((u) => !q || u.email.toLowerCase().includes(q));
+  const filtered = useMemo(
+    () =>
+      (rows ?? []).filter(
+        (r) =>
+          (entity === 'all' || r.entity === entity) &&
+          (!q ||
+            r.summary.toLowerCase().includes(q) ||
+            r.actorEmail.toLowerCase().includes(q) ||
+            (r.actorName ?? '').toLowerCase().includes(q)),
+      ),
+    [rows, q, entity],
+  );
 
   return (
     <>
-      <div className="px-5 py-3 bg-accent-50/60 border-b border-accent-100">
+      <div className="px-5 py-3 bg-accent-50/60 border-b border-accent-100 flex flex-wrap items-center justify-between gap-3">
         <p className="text-[11px] text-slate-500">
-          Every team member is a <span className="font-bold text-accent-700">Super Admin</span>. Add or
-          remove accounts in Supabase → Authentication → Users.
+          Immutable record of every change made from the Console — visible to System Admins only.
         </p>
+        <select
+          value={entity}
+          onChange={(e) => setEntity(e.target.value)}
+          aria-label="Filter by area"
+          className="bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-ink-700 focus:outline-none focus:ring-2 focus:ring-accent-500"
+        >
+          <option value="all">All changes</option>
+          {Object.entries(ENTITY_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>
+              {v}
+            </option>
+          ))}
+        </select>
       </div>
-      {users === null ? (
+      {error && <p className="px-5 py-3 text-xs text-rose-600 bg-rose-50 border-b border-rose-100">{error}</p>}
+      {rows === null ? (
         <Empty label="Loading…" />
-      ) : rows.length === 0 ? (
-        <Empty label="No users found." />
+      ) : filtered.length === 0 ? (
+        <Empty label="No changes recorded yet." />
       ) : (
-        rows.map((u) => (
-          <Row
-            key={u.id}
-            title={u.email}
-            tag="Super Admin"
-            date={u.lastSignInAt ? `Last seen ${fmtDate(u.lastSignInAt)}` : undefined}
-            actions={
-              u.email === currentEmail ? (
-                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-100 rounded px-2 py-0.5">
-                  You
-                </span>
-              ) : undefined
-            }
-          />
+        filtered.map((r) => (
+          <div key={r.id} className="px-5 py-3.5 border-b border-slate-100 last:border-0">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`text-[9px] font-bold uppercase tracking-wider border rounded px-1.5 py-0.5 ${
+                      ACTION_STYLES[r.action] ?? ACTION_STYLES.update
+                    }`}
+                  >
+                    {r.action}
+                  </span>
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                    {ENTITY_LABELS[r.entity] ?? r.entity}
+                  </span>
+                </div>
+                <p className="font-semibold text-sm text-slate-900 mt-1 leading-snug break-words">{r.summary}</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {r.actorName && r.actorName !== r.actorEmail ? `${r.actorName} · ` : ''}
+                  {r.actorEmail} · {fmtDateTime(r.createdAt)}
+                </p>
+                {openId === r.id && r.details && (
+                  <pre className="mt-2 text-[10px] leading-relaxed text-slate-600 bg-slate-50 border border-slate-200 rounded-lg p-3 max-w-full whitespace-pre-wrap break-words">
+                    {JSON.stringify(r.details, null, 2)}
+                  </pre>
+                )}
+              </div>
+              {r.details && (
+                <IconBtn onClick={() => setOpenId(openId === r.id ? null : r.id)} title="Details">
+                  <ChevronDown className={`w-4 h-4 transition-transform ${openId === r.id ? 'rotate-180' : ''}`} />
+                </IconBtn>
+              )}
+            </div>
+          </div>
         ))
       )}
-      <div className="px-5 py-4">
-        <button
-          onClick={() =>
-            showToast('Add team members in Supabase → Authentication → Users (with Auto Confirm).')
-          }
-          className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-ink-700 border border-slate-200 rounded-lg px-3 py-2 hover:border-ink-400 transition"
-        >
-          <Plus className="w-3.5 h-3.5" /> Add user
-        </button>
-      </div>
     </>
   );
 };

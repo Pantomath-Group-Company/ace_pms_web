@@ -1,5 +1,6 @@
 import { PERFORMANCE, STRATEGIES } from '../data/content';
-import { useCmsPerformance } from './cms/store';
+import { useCmsPerformance, useCmsStrategyNav, useCmsStrategyNotes } from './cms/store';
+import { formatAsOn } from './cms/navParser';
 
 // Merge Console-uploaded horizon returns over the committed PERFORMANCE.tables.
 // Tables are keyed by strategy name; uploads by strategy id — STRATEGIES bridges
