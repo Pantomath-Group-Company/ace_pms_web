@@ -1,7 +1,7 @@
-import { PERFORMANCE, STRATEGIES } from '../data/content';
+import { PERFORMANCE, STRATEGIES, PMS_RANKINGS } from '../data/content';
 import { useCmsPerformance, useCmsStrategyNav, useCmsStrategyNotes } from './cms/store';
 import { formatAsOn } from './cms/navParser';
-import { FIVE_YEAR_RANGE_NOTE_ID } from './cms/types';
+import { FIVE_YEAR_RANGE_NOTE_ID, PMS_RANKINGS_NOTE_ID, type PmsRankingsData } from './cms/types';
 
 // Merge Console-uploaded horizon returns over the committed PERFORMANCE.tables.
 // Tables are keyed by strategy name; uploads by strategy id — STRATEGIES bridges
@@ -123,4 +123,38 @@ export function useTrackRecord(strategyId: string): string | undefined {
   const note = notes.find((n) => n.strategyId === strategyId);
   if (note) return note.trackRecord.trim() || undefined;
   return STRATEGIES.find((s) => s.id === strategyId)?.trackRecord;
+}
+
+/** Built-in rankings from content.ts. */
+export const DEFAULT_PMS_RANKINGS: PmsRankingsData = {
+  rows: PMS_RANKINGS.rows.map((r) => ({ ...r })),
+  footnote: PMS_RANKINGS.footnote,
+};
+
+/** Parse the JSON stored under PMS_RANKINGS_NOTE_ID; null if missing or malformed. */
+export function parseRankingsNote(raw: string | undefined): PmsRankingsData | null {
+  if (!raw?.trim()) return null;
+  try {
+    const v = JSON.parse(raw);
+    if (!v || !Array.isArray(v.rows)) return null;
+    const str = (x: unknown) => (typeof x === 'string' ? x : '');
+    return {
+      rows: v.rows.map((r: Record<string, unknown>) => ({
+        strategy: str(r?.strategy),
+        category: str(r?.category),
+        period: str(r?.period),
+        rank: str(r?.rank),
+      })),
+      footnote: str(v.footnote),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** PMS Bazaar rankings table + footnote: Console edit if saved, else content.ts. */
+export function useResolvedRankings(): PmsRankingsData {
+  const notes = useCmsStrategyNotes();
+  const saved = parseRankingsNote(notes.find((n) => n.strategyId === PMS_RANKINGS_NOTE_ID)?.trackRecord);
+  return saved ?? DEFAULT_PMS_RANKINGS;
 }

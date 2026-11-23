@@ -608,6 +608,8 @@ export const PMS_RANKINGS = {
     { strategy: 'ACE Ten Trillion Opportunities', category: 'Small & Mid Cap', period: '3 Years', rank: 'Rank 8' },
     { strategy: 'ACE Multicap', category: 'Multicap', period: '5 Years', rank: 'Rank 10' },
   ],
+  // Source line shown under the table (editable in Console → Rankings).
+  footnote: 'July 2026 PMS Bazaar Report',
 };
 
 export const PERFORMANCE = {

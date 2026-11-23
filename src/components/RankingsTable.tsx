@@ -1,10 +1,13 @@
 import type { FC } from 'react';
 import { Award } from 'lucide-react';
 import { PMS_RANKINGS } from '../data/content';
+import { useResolvedRankings } from '../lib/performance';
 
 // PMS Bazaar category rankings (deck slide 14) — a light, premium showcase in
 // the brand's purple/ink family, surfaced high on the home page.
-export const RankingsTable: FC = () => (
+export const RankingsTable: FC = () => {
+  const { rows, footnote } = useResolvedRankings();
+  return (
   <section className="relative overflow-hidden font-sans py-20 sm:py-24 border-b border-slate-100 bg-[#F6F4FC]">
     {/* Soft ambient wash for depth */}
     <div
@@ -39,7 +42,7 @@ export const RankingsTable: FC = () => (
             </tr>
           </thead>
           <tbody>
-            {PMS_RANKINGS.rows.map((r, i) => (
+            {rows.map((r, i) => (
               <tr
                 key={`${r.strategy}-${r.period}`}
                 className={`border-t border-slate-100 ${i % 2 ? 'bg-[#FAF9FE]' : 'bg-white'}`}
@@ -60,7 +63,7 @@ export const RankingsTable: FC = () => (
 
       {/* Mobile — stacked cards */}
       <div className="sm:hidden space-y-3">
-        {PMS_RANKINGS.rows.map((r) => (
+        {rows.map((r) => (
           <div
             key={`${r.strategy}-${r.period}`}
             className="rounded-2xl border border-slate-200/70 bg-white shadow-sm p-4 flex items-start justify-between gap-3"
@@ -77,6 +80,13 @@ export const RankingsTable: FC = () => (
           </div>
         ))}
       </div>
+
+      {footnote.trim() && (
+        <p className="mt-4 text-center sm:text-right text-[11px] text-slate-500 font-light italic">
+          {footnote}
+        </p>
+      )}
     </div>
   </section>
-);
+  );
+};
