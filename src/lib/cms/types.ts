@@ -240,6 +240,24 @@ export interface StrategyNote {
  */
 export const FIVE_YEAR_RANGE_NOTE_ID = '__five_year_range__';
 
+/**
+ * Reserved strategy_notes key holding the Home page PMS Bazaar rankings as JSON
+ * ({ rows: PmsRankingRow[], footnote: string }). No row = content.ts defaults.
+ */
+export const PMS_RANKINGS_NOTE_ID = '__pms_rankings__';
+
+export interface PmsRankingRow {
+  strategy: string;
+  category: string;
+  period: string;
+  rank: string;
+}
+
+export interface PmsRankingsData {
+  rows: PmsRankingRow[];
+  footnote: string;
+}
+
 export interface NewStrategyNoteInput {
   strategyId: string;
   trackRecord: string;

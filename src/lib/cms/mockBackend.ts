@@ -38,10 +38,14 @@ import type {
   AuditLogEntry,
   NewAuditInput,
 } from './types';
-import { ROLE_LABELS, FIVE_YEAR_RANGE_NOTE_ID } from './types';
+import { ROLE_LABELS, FIVE_YEAR_RANGE_NOTE_ID, PMS_RANKINGS_NOTE_ID } from './types';
 
 const strategyName = (id: string) =>
-  id === FIVE_YEAR_RANGE_NOTE_ID ? '5-yr annualised return' : STRATEGIES.find((s) => s.id === id)?.name ?? id;
+  id === FIVE_YEAR_RANGE_NOTE_ID
+    ? '5-yr annualised return'
+    : id === PMS_RANKINGS_NOTE_ID
+      ? 'PMS Bazaar rankings'
+      : STRATEGIES.find((s) => s.id === id)?.name ?? id;
 
 const fileToDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {

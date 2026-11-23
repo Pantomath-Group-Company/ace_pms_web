@@ -26,6 +26,7 @@ import {
   Upload,
   RotateCcw,
   Trophy,
+  Award,
   History,
   UserMinus,
   Save,
@@ -40,8 +41,18 @@ import {
 } from '../lib/cms/store';
 import { cms } from '../lib/cms/backend';
 import { STRATEGIES } from '../data/content';
-import { useComputedFiveYearReturnRange, parseFiveYearOverride } from '../lib/performance';
-import { FIVE_YEAR_RANGE_NOTE_ID } from '../lib/cms/types';
+import {
+  useComputedFiveYearReturnRange,
+  parseFiveYearOverride,
+  parseRankingsNote,
+  DEFAULT_PMS_RANKINGS,
+} from '../lib/performance';
+import {
+  FIVE_YEAR_RANGE_NOTE_ID,
+  PMS_RANKINGS_NOTE_ID,
+  type PmsRankingRow,
+  type PmsRankingsData,
+} from '../lib/cms/types';
 import { parseNavRows, parsePerformanceRows, deriveNavStats, formatAsOn } from '../lib/cms/navParser';
 import {
   DOC_CATEGORIES,
@@ -71,6 +82,7 @@ type SectionType =
   | 'nav'
   | 'perf'
   | 'notes'
+  | 'rankings'
   | 'callback'
   | 'audit';
 
@@ -93,6 +105,7 @@ const SECTIONS: Section[] = [
   { key: 'strategy', label: 'Strategy', icon: LineChart, type: 'nav' },
   { key: 'performance', label: 'Performance', icon: BarChart3, type: 'perf' },
   { key: 'track-record', label: 'Track Record', icon: Trophy, type: 'notes' },
+  { key: 'rankings', label: 'Rankings', icon: Award, type: 'rankings' },
   { key: 'compliance', label: 'Compliance', icon: ShieldCheck, type: 'doc', category: 'Compliance & disclosures' },
   { key: 'forms', label: 'Forms', icon: ClipboardList, type: 'doc', category: 'Forms' },
   { key: 'onboarding', label: 'Onboarding', icon: Inbox, type: 'onboarding' },
@@ -227,6 +240,7 @@ export default function AdminPage() {
             {active.type === 'nav' && <NavManager />}
             {active.type === 'perf' && <PerfManager />}
             {active.type === 'notes' && <NotesManager />}
+            {active.type === 'rankings' && <RankingsManager />}
             {active.type === 'onboarding' && <OnboardingList search={search} />}
             {active.type === 'callback' && <CallbackList search={search} />}
             {active.type === 'access' && isSystemAdmin && (
@@ -283,6 +297,7 @@ const IconBtn: FC<{ onClick: () => void; title: string; danger?: boolean; childr
   children,
 }) => (
   <button
+    type="button"
     onClick={onClick}
     title={title}
     className={`p-2 rounded-lg transition ${
@@ -754,6 +769,177 @@ const FiveYearOverride: FC = () => {
           : 'Showing the calculated range.'}
       </p>
     </form>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* Rankings — PMS Bazaar rankings table + footnote on the Home page    */
+/* ------------------------------------------------------------------ */
+
+const RANK_FIELDS: Array<{ key: keyof PmsRankingRow; label: string; placeholder: string }> = [
+  { key: 'strategy', label: 'PMS Strategy', placeholder: 'ACE Multicap' },
+  { key: 'category', label: 'Category', placeholder: 'Multicap' },
+  { key: 'period', label: 'Period', placeholder: '5 Years' },
+  { key: 'rank', label: 'Rank', placeholder: 'Rank 10' },
+];
+
+const emptyRankRow = (): PmsRankingRow => ({ strategy: '', category: '', period: '', rank: '' });
+
+const cleanRankings = (d: PmsRankingsData): PmsRankingsData => ({
+  rows: d.rows
+    .map((r) => ({
+      strategy: r.strategy.trim(),
+      category: r.category.trim(),
+      period: r.period.trim(),
+      rank: r.rank.trim(),
+    }))
+    .filter((r) => r.strategy || r.category || r.period || r.rank),
+  footnote: d.footnote.trim(),
+});
+
+const RankingsManager: FC = () => {
+  const showToast = useToast();
+  const notes = useCmsStrategyNotes();
+  const saved = notes.find((n) => n.strategyId === PMS_RANKINGS_NOTE_ID);
+  const current = useMemo(
+    () => parseRankingsNote(saved?.trackRecord) ?? DEFAULT_PMS_RANKINGS,
+    [saved?.trackRecord],
+  );
+  const [draft, setDraft] = useState<PmsRankingsData>(current);
+  const [busy, setBusy] = useState(false);
+
+  // Load saved data (and pick up saves made elsewhere).
+  useEffect(() => {
+    setDraft({ rows: current.rows.map((r) => ({ ...r })), footnote: current.footnote });
+  }, [current]);
+
+  const cleaned = cleanRankings(draft);
+  const dirty = JSON.stringify(cleaned) !== JSON.stringify(cleanRankings(current));
+
+  const setCell = (i: number, key: keyof PmsRankingRow, value: string) =>
+    setDraft((d) => ({ ...d, rows: d.rows.map((r, j) => (j === i ? { ...r, [key]: value } : r)) }));
+  const removeRow = (i: number) => setDraft((d) => ({ ...d, rows: d.rows.filter((_, j) => j !== i) }));
+  const moveRow = (i: number, dir: -1 | 1) =>
+    setDraft((d) => {
+      const j = i + dir;
+      if (j < 0 || j >= d.rows.length) return d;
+      const rows = [...d.rows];
+      [rows[i], rows[j]] = [rows[j], rows[i]];
+      return { ...d, rows };
+    });
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await cms.saveStrategyNote({ strategyId: PMS_RANKINGS_NOTE_ID, trackRecord: JSON.stringify(cleaned) });
+      showToast('PMS Bazaar rankings updated.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not save.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reset = async () => {
+    setBusy(true);
+    try {
+      await cms.deleteStrategyNote(PMS_RANKINGS_NOTE_ID);
+      showToast('Rankings reverted to the built-in table.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not reset.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="px-5 py-3 bg-accent-50/60 border-b border-accent-100">
+        <p className="text-[11px] text-slate-500 leading-relaxed">
+          Edit the <span className="font-bold text-accent-700">PMS Bazaar rankings</span> table and the{' '}
+          <span className="font-bold text-accent-700">footnote</span> shown below it on the Home page. Empty
+          rows are ignored; leave the footnote blank to hide it. Reset restores the built-in table.
+        </p>
+      </div>
+      <form onSubmit={save} className="p-5 space-y-4">
+        <div className="space-y-3">
+          {draft.rows.map((r, i) => (
+            <div key={i} className="rounded-xl border border-slate-200 p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Row {i + 1}</span>
+                <div className="flex items-center gap-1">
+                  <IconBtn onClick={() => moveRow(i, -1)} title="Move up">
+                    <ChevronDown className="w-4 h-4 rotate-180" />
+                  </IconBtn>
+                  <IconBtn onClick={() => moveRow(i, 1)} title="Move down">
+                    <ChevronDown className="w-4 h-4" />
+                  </IconBtn>
+                  <IconBtn onClick={() => removeRow(i)} title="Remove row" danger>
+                    <Trash2 className="w-4 h-4" />
+                  </IconBtn>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+                {RANK_FIELDS.map((f) => (
+                  <input
+                    key={f.key}
+                    value={r[f.key]}
+                    onChange={(e) => setCell(i, f.key, e.target.value)}
+                    placeholder={f.placeholder}
+                    aria-label={`${f.label}, row ${i + 1}`}
+                    title={f.label}
+                    className={inputCls}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => setDraft((d) => ({ ...d, rows: [...d.rows, emptyRankRow()] }))}
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-accent-600 border border-accent-200 hover:bg-accent-50 rounded-lg px-3 py-2"
+          >
+            <Plus className="w-3.5 h-3.5" /> Add row
+          </button>
+        </div>
+        <div className="max-w-2xl">
+          <Field label="Footnote (below the table)">
+            <input
+              value={draft.footnote}
+              onChange={(e) => setDraft((d) => ({ ...d, footnote: e.target.value }))}
+              placeholder="e.g. July 2026 PMS Bazaar Report"
+              className={inputCls}
+            />
+          </Field>
+        </div>
+        <p className="text-[11px] text-slate-400">
+          {saved
+            ? `Custom rankings · last updated by ${saved.updatedBy} on ${fmtDate(saved.updatedAt)}`
+            : 'Showing the built-in rankings.'}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="submit"
+            disabled={busy || !dirty}
+            className="inline-flex items-center gap-2 bg-accent-500 hover:bg-accent-600 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg"
+          >
+            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Save
+          </button>
+          {saved && (
+            <button
+              type="button"
+              onClick={reset}
+              disabled={busy}
+              className="inline-flex items-center gap-2 text-rose-600 border border-rose-200 hover:bg-rose-50 disabled:opacity-50 font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg"
+            >
+              <RotateCcw className="w-4 h-4" /> Reset to built-in
+            </button>
+          )}
+        </div>
+      </form>
+    </>
   );
 };
 
