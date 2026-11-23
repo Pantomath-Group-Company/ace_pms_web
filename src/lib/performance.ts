@@ -1,6 +1,7 @@
 import { PERFORMANCE, STRATEGIES } from '../data/content';
 import { useCmsPerformance, useCmsStrategyNav, useCmsStrategyNotes } from './cms/store';
 import { formatAsOn } from './cms/navParser';
+import { FIVE_YEAR_RANGE_NOTE_ID } from './cms/types';
 
 // Merge Console-uploaded horizon returns over the committed PERFORMANCE.tables.
 // Tables are keyed by strategy name; uploads by strategy id — STRATEGIES bridges
@@ -76,6 +77,30 @@ export interface ReturnRange {
  * tables, so a Console upload for any strategy moves the range immediately.
  */
 export function useFiveYearReturnRange(): ReturnRange | null {
+  const computed = useComputedFiveYearReturnRange();
+  const override = parseFiveYearOverride(
+    useCmsStrategyNotes().find((n) => n.strategyId === FIVE_YEAR_RANGE_NOTE_ID)?.trackRecord,
+  );
+  return override ?? computed;
+}
+
+/**
+ * Parse a Console override like "17-21", "17–21" or "20" into a range.
+ * Returns null for empty/invalid input so the computed range is used.
+ */
+export function parseFiveYearOverride(raw: string | undefined): ReturnRange | null {
+  const m = raw?.trim().match(/^(\d+(?:\.\d+)?)\s*(?:[-–—]|to)?\s*(\d+(?:\.\d+)?)?$/i);
+  if (!m) return null;
+  const a = Number(m[1]);
+  const b = m[2] !== undefined ? Number(m[2]) : a;
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
+  const min = Math.min(a, b);
+  const max = Math.max(a, b);
+  return { min, max, label: min === max ? String(max) : `${min}–${max}` };
+}
+
+/** 5Y range computed from the performance tables (ignores any manual override). */
+export function useComputedFiveYearReturnRange(): ReturnRange | null {
   const values = useResolvedPerformanceTables()
     .map((t) => Number(t.rows.portfolio[FIVE_YEAR]))
     .filter((v) => Number.isFinite(v));
