@@ -234,6 +234,12 @@ export interface StrategyNote {
   updatedAt: string; // ISO timestamp
 }
 
+/**
+ * Reserved strategy_notes key holding a manual override of the Home page
+ * "5-yr annualised return" range (e.g. "17-21" or "20"). No row = computed.
+ */
+export const FIVE_YEAR_RANGE_NOTE_ID = '__five_year_range__';
+
 export interface NewStrategyNoteInput {
   strategyId: string;
   trackRecord: string;

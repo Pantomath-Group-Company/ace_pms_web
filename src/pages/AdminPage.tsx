@@ -40,6 +40,8 @@ import {
 } from '../lib/cms/store';
 import { cms } from '../lib/cms/backend';
 import { STRATEGIES } from '../data/content';
+import { useComputedFiveYearReturnRange, parseFiveYearOverride } from '../lib/performance';
+import { FIVE_YEAR_RANGE_NOTE_ID } from '../lib/cms/types';
 import { parseNavRows, parsePerformanceRows, deriveNavStats, formatAsOn } from '../lib/cms/navParser';
 import {
   DOC_CATEGORIES,
@@ -598,6 +600,7 @@ const PerfManager: FC = () => {
           automatically; Alpha is computed for you (Portfolio − Benchmark).
         </p>
       </div>
+      <FiveYearOverride />
       {STRATEGIES.map((s) => {
         const row = byId.get(s.id);
         const busy = busyId === s.id;
@@ -654,6 +657,103 @@ const PerfManager: FC = () => {
         );
       })}
     </>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/* 5-yr annualised return — manual override of the computed range      */
+/* ------------------------------------------------------------------ */
+
+const FiveYearOverride: FC = () => {
+  const showToast = useToast();
+  const notes = useCmsStrategyNotes();
+  const computed = useComputedFiveYearReturnRange();
+  const saved = notes.find((n) => n.strategyId === FIVE_YEAR_RANGE_NOTE_ID);
+  const current = saved?.trackRecord ?? '';
+  const [text, setText] = useState(current);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    setText(current);
+  }, [current]);
+
+  const parsed = parseFiveYearOverride(text);
+  const invalid = text.trim() !== '' && !parsed;
+  const dirty = text.trim() !== current.trim();
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!parsed) return;
+    setBusy(true);
+    try {
+      await cms.saveStrategyNote({ strategyId: FIVE_YEAR_RANGE_NOTE_ID, trackRecord: parsed.label });
+      showToast(`5-yr annualised return set to ${parsed.label}%.`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not save.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const reset = async () => {
+    setBusy(true);
+    try {
+      await cms.deleteStrategyNote(FIVE_YEAR_RANGE_NOTE_ID);
+      showToast('5-yr annualised return reverted to the calculated range.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Could not reset.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={save} className="px-5 py-4 border-b border-slate-100 space-y-3">
+      <div>
+        <p className="text-sm font-bold text-slate-900">5-yr annualised return (Home page)</p>
+        <p className="text-[11px] text-slate-500 mt-0.5">
+          Calculated from the 5Y returns below:{' '}
+          <span className="font-bold text-accent-700">{computed ? `${computed.label}%` : '—'}</span>.
+          If the calculation is off, enter the figure to show instead — a range like{' '}
+          <span className="font-bold">17-21</span> or a single value like <span className="font-bold">20</span>.
+        </p>
+      </div>
+      <div className="flex flex-wrap items-start gap-2">
+        <div className="w-48">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={computed ? computed.label.replace('–', '-') : 'e.g. 17-21'}
+            className={inputCls}
+            aria-label="5-yr annualised return override"
+          />
+          {invalid && <p className="text-[11px] text-rose-600 mt-1">Use a number or a range, e.g. 17-21.</p>}
+        </div>
+        <button
+          type="submit"
+          disabled={busy || !dirty || !parsed}
+          className="inline-flex items-center gap-2 bg-accent-500 hover:bg-accent-600 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg"
+        >
+          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+          Save
+        </button>
+        {saved && (
+          <button
+            type="button"
+            onClick={reset}
+            disabled={busy}
+            className="inline-flex items-center gap-2 text-rose-600 border border-rose-200 hover:bg-rose-50 disabled:opacity-50 font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-lg"
+          >
+            <RotateCcw className="w-4 h-4" /> Use calculated
+          </button>
+        )}
+      </div>
+      <p className="text-[11px] text-slate-400">
+        {saved
+          ? `Manual override ${saved.trackRecord}% · set by ${saved.updatedBy} on ${fmtDate(saved.updatedAt)}`
+          : 'Showing the calculated range.'}
+      </p>
+    </form>
   );
 };
 

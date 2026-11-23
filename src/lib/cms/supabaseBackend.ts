@@ -34,7 +34,8 @@ import type {
   AuditLogEntry,
   NewAuditInput,
 } from './types';
-import { normalizeRole } from './types';
+import { normalizeRole, FIVE_YEAR_RANGE_NOTE_ID } from './types';
+import { STRATEGIES } from '../../data/content';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -46,7 +47,8 @@ const uid = () =>
 const safeName = (name: string) => name.replace(/[^a-zA-Z0-9._-]/g, '_');
 
 /** Human-readable strategy name for audit summaries ("multicap" → "ACE Multicap"). */
-const strategyName = (id: string) => STRATEGIES.find((s) => s.id === id)?.name ?? id;
+const strategyName = (id: string) =>
+  id === FIVE_YEAR_RANGE_NOTE_ID ? '5-yr annualised return' : STRATEGIES.find((s) => s.id === id)?.name ?? id;
 
 function mapSession(session: any): CmsSession | null {
   if (!session?.user) return null;
